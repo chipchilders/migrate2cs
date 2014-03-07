@@ -34,8 +34,10 @@ On Migration Machine
 
 HOWTO USE THE PACKAGE
 =====================
-### Create './migrate_hyperv_input.json'
-This file is used to specify which VMs from HyperV to export and how they should be imported into CloudStack.  The file is in the following format.
+### Create 	`./migrate_hyperv_input.json`
+This file is used to specify which VMs from HyperV to export and where they should be imported into CloudStack.  
+
+The file is in the following format.
 
 	[
 		{
@@ -53,12 +55,12 @@ This file is used to specify which VMs from HyperV to export and how they should
 		}
 	]
 
-* The first entry is only specifying the minimum fields.  All of the CloudStack details will be pulled from the default values in the './settings.conf' file (covered later).
-* The second entry specifies all the options.  All these entries will override the defaults in the './settings.conf' file.  If any field is left out it will be replaced with the default as in the first example.
+* The first entry is only specifying the minimum required fields.  All of the CloudStack details will be pulled from the default values in the `./settings.conf` file (covered later).
+* The second entry specifies all possible options.  These entries will override the defaults in the `./settings.conf` file.  If any field is left out it will be replaced with the default as in the first example.
 
 
-### Convenience file './discover_cs.py'
-Because it is a lot of work to generate the './migrate_hyperv_input.json' file, I have created this convenience file.  This script uses the connection details described in the './settings.conf' file and does a discovery of the target CloudStack environment and outputs all of the different resources in the following format.  This makes it much easier to copy and paste when creating the input file.
+### Convenience file `./discover_cs.py`
+Because it is a lot of work to generate the `./migrate_hyperv_input.json` file, I have created this convenience file.  This script uses the connection details described in the `./settings.conf` file and does a discovery of the target CloudStack environment and outputs all of the different resources in the following format.  This makes it much easier to copy and paste when creating the input file.
 
 	ZONES:
 	------
@@ -88,7 +90,7 @@ Because it is a lot of work to generate the './migrate_hyperv_input.json' file, 
 	"cs_service_offering":"2de2cc7f-abf2-4576-8ef9-e35c9431001d",
 
 
-### Setup the config './settings.conf'
+### Setup the config `./settings.conf`
 This file is in INI format and is used to pass configurable parameters to the different scripts.  All of the scripts use this settings file.
 
 
