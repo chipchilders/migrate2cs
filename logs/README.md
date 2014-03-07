@@ -1,0 +1,1 @@
+This directory will hold the logs when different process are run.
