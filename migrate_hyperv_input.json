@@ -4,10 +4,6 @@
 		"hyperv_server":"HYPERV1"
 	},
 	{
-		"hyperv_vm_name":"MultiDisk_Windows2003",
-		"hyperv_server":"HYPERV1"
-	},
-	{
 		"hyperv_vm_name":"CentOS65",
 		"hyperv_server":"HYPERV1"
 	}

@@ -7,8 +7,7 @@ conf.add_section('HYPERV')
 conf.set('HYPERV', 'module_path', 'C:\Program Files\modules\HyperV')
 
 # read in config if it exists
-if os.path.exists("./settings.conf"):
-    conf.read("./settings.conf")
+conf.read("./settings.conf")
 
 # require 'endpoint', 'username' and 'password' to use this lib
 if not conf.has_option('HYPERV', 'endpoint', None):
@@ -52,6 +51,11 @@ class HyperV:
 		else:
 			return r.std_err, ok
 
-
+### Set the hyperv object to be used elsewhere
 hyperv = HyperV(conf.get('HYPERV', 'endpoint'), conf.get('HYPERV', 'username'), conf.get('HYPERV', 'password'))
+
+### Update the running.conf file
+conf.read("./running.conf") # make sure we have everything from this file already
+with open('running.conf', 'wb') as f:
+    conf.write(f) # update the file to include any changes we have made
 

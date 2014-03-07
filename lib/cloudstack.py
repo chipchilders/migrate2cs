@@ -32,13 +32,12 @@ conf.add_section('CLOUDSTACK')
 conf.set('CLOUDSTACK', 'protocol', 'http')
 conf.set('CLOUDSTACK', 'host', '127.0.0.1:8080')
 conf.set('CLOUDSTACK', 'uri', '/client/api')
-conf.set('CLOUDSTACK', 'logging', 'True')
-conf.set('CLOUDSTACK', 'log_file', 'cs_requests.log')
 conf.set('CLOUDSTACK', 'async_poll_interval', '5')
+conf.set('CLOUDSTACK', 'logging', 'True')
+conf.set('CLOUDSTACK', 'log_file', './logs/cs_request.log')
 
 # read in config if it exists
-if os.path.exists("./settings.conf"):
-    conf.read("./settings.conf")
+conf.read("./settings.conf")
 
 # require an 'api_key' and a 'secret_key' to use this lib
 if not conf.has_option('CLOUDSTACK', 'api_key'):
@@ -47,11 +46,11 @@ if not conf.has_option('CLOUDSTACK', 'secret_key'):
     sys.exit("Config required in settings.conf: [CLOUDSTACK] -> secret_key")
 
 
-class API(object):
+class CloudStack(object):
     """
     Login and run queries against the Cloudstack API.
     Example Usage: 
-    api = API(api_key='api_key', secret_key='secret_key'))
+    api = CloudStack(api_key='api_key', secret_key='secret_key'))
     accounts = api.request(dict({'command':'listAccounts'}))
     
     """
@@ -128,7 +127,7 @@ class API(object):
 
 
 ### Create an object for connecting to Cloudstack
-cs = API(
+cs = CloudStack(
     protocol=conf.get('CLOUDSTACK', 'protocol'), 
     host=conf.get('CLOUDSTACK', 'host'), 
     uri=conf.get('CLOUDSTACK', 'uri'), 
@@ -136,4 +135,9 @@ cs = API(
     secret_key=conf.get('CLOUDSTACK', 'secret_key'), 
     logging=conf.getboolean('CLOUDSTACK', 'logging'), 
     async_poll_interval=conf.getint('CLOUDSTACK', 'async_poll_interval'))
+
+### Update the running.conf file
+conf.read("./running.conf") # make sure we have everything from this file already
+with open('running.conf', 'wb') as f:
+    conf.write(f) # update the file to include any changes we have made
 
