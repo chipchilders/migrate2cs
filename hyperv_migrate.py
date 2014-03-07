@@ -8,8 +8,9 @@ import pprint
 
 # setup the conf object and set default values...
 conf = ConfigParser()
+conf.add_section('HYPERV')
 conf.set('HYPERV', 'export_path', 'C:\RemoteExport')
-conf.set('HYPERV', 'migrate_input', './input.json')
+conf.set('HYPERV', 'migrate_input', './migrate_input.json')
 
 # read in config if it exists
 if os.path.exists("./settings.conf"):

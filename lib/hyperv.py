@@ -3,18 +3,19 @@ import winrm
 
 # setup the conf object and set default values...
 conf = ConfigParser()
+conf.add_section('HYPERV')
 conf.set('HYPERV', 'module_path', 'C:\Program Files\modules\HyperV')
 
 # read in config if it exists
-if os.path.exists("../settings.conf"):
-    conf.read("../settings.conf")
+if os.path.exists("./settings.conf"):
+    conf.read("./settings.conf")
 
 # require 'endpoint', 'username' and 'password' to use this lib
-if not conf.get('HYPERV', 'endpoint', None):
+if not conf.has_option('HYPERV', 'endpoint', None):
     sys.exit("Config required in settings.conf: [HYPERV] -> endpoint")
-if not conf.get('HYPERV', 'username', None):
+if not conf.has_option('HYPERV', 'username', None):
     sys.exit("Config required in settings.conf: [HYPERV] -> username")
-if not conf.get('HYPERV', 'password', None):
+if not conf.has_option('HYPERV', 'password', None):
     sys.exit("Config required in settings.conf: [HYPERV] -> password")
 
 class HyperV:

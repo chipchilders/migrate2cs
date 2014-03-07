@@ -28,6 +28,7 @@ import sys
 
 # setup the conf object and set default values...
 conf = ConfigParser()
+conf.add_section('CLOUDSTACK')
 conf.set('CLOUDSTACK', 'protocol', 'http')
 conf.set('CLOUDSTACK', 'host', '127.0.0.1:8080')
 conf.set('CLOUDSTACK', 'uri', '/client/api')
@@ -36,13 +37,13 @@ conf.set('CLOUDSTACK', 'log_file', 'cs_requests.log')
 conf.set('CLOUDSTACK', 'async_poll_interval', '5')
 
 # read in config if it exists
-if os.path.exists("../settings.conf"):
-    conf.read("../settings.conf")
+if os.path.exists("./settings.conf"):
+    conf.read("./settings.conf")
 
 # require an 'api_key' and a 'secret_key' to use this lib
-if not conf.get('CLOUDSTACK', 'api_key', None):
+if not conf.has_option('CLOUDSTACK', 'api_key'):
     sys.exit("Config required in settings.conf: [CLOUDSTACK] -> api_key")
-if not conf.get('CLOUDSTACK', 'secret_key', None):
+if not conf.has_option('CLOUDSTACK', 'secret_key'):
     sys.exit("Config required in settings.conf: [CLOUDSTACK] -> secret_key")
 
 

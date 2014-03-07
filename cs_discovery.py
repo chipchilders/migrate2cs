@@ -14,10 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cs_api import cs
-from cs_api import conf
+from lib.cs_api import cs
+from lib.cs_api import conf
 import pprint
-import time
 
   
 ###########################################################
@@ -27,20 +26,36 @@ if __name__ == "__main__":
     # comment out the following line to keep a history of the requests over multiple runs (cloudstack requests log will get large).
     open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # cleans the cloudstack requests log before execution so it only includes this run.
     
-    
-    ## LIST
-    
-    #api.request(dict({'command':'listAccounts'}))
-    pprint.pprint(api.request(dict({'command':'listZones'})))
-    #api.request(dict({'command':'listVPCOfferings'}))
-    #api.request(dict({'command':'listNetworkOfferings', 'forVpc':True}))
-    #api.request(dict({'command':'listVPCs'}))
-    #api.request(dict({'command':'listNetworks', 'listAll':True}))
-    #api.request(dict({'command':'listPublicIpAddresses'}))
-    #api.request(dict({'command':'listVirtualMachines'}))
-    #api.request(dict({'command':'listLoadBalancerRules'}))
-    #api.request(dict({'command':'listPrivateGateways', 'listAll':True}))
-    #api.request(dict({'command':'listStaticRoutes', 'listAll':True}))
-    
-    #api.request(dict({'command':'queryAsyncJobResult', 'jobId':'87d438be-b7cc-466d-828f-e02595ad536d'}))
+    zones = cs.request(dict({'command':'listZones'}))
+    if zones and 'zone' in zones:
+        print('\nZONES:\n------')
+        for zone in zones['zone']:
+            print('=> %s <=' % (zone['name']))
+            print('"cs_zone":"%s",' % (zone['id']))
+            print("")
+
+    accounts = cs.request(dict({'command':'listAccounts', 'listAll':True}))
+    if accounts and 'account' in accounts:
+        print('\nACCOUNTS:\n---------')
+        for account in accounts['account']:
+            print('=> %s/%s <=' % (account['domain'], account['name']))
+            print('"cs_account":"%s",' % (account['id']))
+            print('"cs_domain":"%s",' % (account['domainid']))
+            print("")
+
+    networks = cs.request(dict({'command':'listNetworks', 'listAll':True}))
+    if networks and 'network' in networks:
+        print('\nNETWORKS:\n---------')
+        for network in networks['network']:
+            print('=> %s - %s <=' % (network['name'], network['cidr']))
+            print('"cs_network":"%s",' % (network['id']))
+            print("")
+
+    offerings = cs.request(dict({'command':'listServiceOfferings'}))
+    if offerings and 'serviceoffering' in offerings:
+        print('\nSERVICE OFFERINGS:\n------------------')
+        for offering in offerings['serviceoffering']:
+            print('=> %s - %sx%sMhz, %sM <=' % (offering['name'], offering['cpunumber'], offering['cpuspeed'], offering['memory']))
+            print('"cs_service_offering":"%s",' % (offering['id']))
+            print("")
     
