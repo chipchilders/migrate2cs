@@ -57,6 +57,7 @@ The file is in the following format.
 
 * The first entry is only specifying the minimum required fields.  All of the CloudStack details will be pulled from the default values in the `./settings.conf` file (covered later).
 * The second entry specifies all possible options.  These entries will override the defaults in the `./settings.conf` file.  If any field is left out it will be replaced with the default as in the first example.
+**NOTE:** Be sure not to include a comma after the last entry in an object or level.  Notice that there is no comma after the last key:value in each object as well as after the last object in the list.
 
 
 ### Convenience file `./discover_cs.py`
