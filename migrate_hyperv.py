@@ -73,5 +73,5 @@ if __name__ == "__main__":
 
 
 	### clean up the running.conf file...
-    os.remove('./running.conf')
+	os.remove('./running.conf')
 
