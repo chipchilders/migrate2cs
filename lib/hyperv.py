@@ -13,11 +13,11 @@ conf.set('HYPERV', 'module_path', 'C:\Program Files\modules\HyperV')
 conf.read("./settings.conf")
 
 # require 'endpoint', 'username' and 'password' to use this lib
-if not conf.has_option('HYPERV', 'endpoint', None):
+if not conf.has_option('HYPERV', 'endpoint'):
     sys.exit("Config required in settings.conf: [HYPERV] -> endpoint")
-if not conf.has_option('HYPERV', 'username', None):
+if not conf.has_option('HYPERV', 'username'):
     sys.exit("Config required in settings.conf: [HYPERV] -> username")
-if not conf.has_option('HYPERV', 'password', None):
+if not conf.has_option('HYPERV', 'password'):
     sys.exit("Config required in settings.conf: [HYPERV] -> password")
 
 class HyperV:

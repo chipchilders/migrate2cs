@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 from ConfigParser import ConfigParser
 from lib.hyperv import hyperv
