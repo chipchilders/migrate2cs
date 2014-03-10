@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from ConfigParser import ConfigParser
-from lib.HyperV import hyperv
+from lib.hyperv import hyperv
 import json
 import os
 import pprint
