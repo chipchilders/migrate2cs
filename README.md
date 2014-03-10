@@ -36,7 +36,7 @@ On Migration Machine
 
 HOWTO USE THE PACKAGE
 =====================
-### Create 	`./migrate_hyperv_input.json`
+## Create 	`./migrate_hyperv_input.json`
 This file is used to specify which VMs from HyperV to export and where they should be imported into CloudStack.  
 
 The file is in the following format.
@@ -62,7 +62,7 @@ The file is in the following format.
 **NOTE:** Be sure not to include a comma after the last entry in an object or level.  Notice that there is no comma after the last key:value in each object as well as after the last object in the list.
 
 
-### Convenience file `./discover_cs.py`
+## Convenience file `./discover_cs.py`
 Because it is a lot of work to generate the `./migrate_hyperv_input.json` file, I have created this convenience file.  This script uses the connection details described in the `./settings.conf` file and does a discovery of the target CloudStack environment and outputs all of the different resources in the following format.  This makes it much easier to copy and paste when creating the input file.
 
 	ZONES:
@@ -93,7 +93,7 @@ Because it is a lot of work to generate the `./migrate_hyperv_input.json` file, 
 	"cs_service_offering":"2de2cc7f-abf2-4576-8ef9-e35c9431001d",
 
 
-### Setup the config `./settings.conf`
+## Setup the config `./settings.conf`
 This file is in INI format and is used to pass configurable parameters to the different scripts.  All of the scripts use this settings file.
 
 
