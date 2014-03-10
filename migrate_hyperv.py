@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from ConfigParser import ConfigParser
-from lib.hyperv import hyperv
+from lib.hyperv import HyperV # the class
+from lib.hyperv import hyperv # the connection
 import json
 import os
 import pprint
