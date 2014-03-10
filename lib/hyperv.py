@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+from ConfigParser import ConfigParser
 import os
 import winrm
 
