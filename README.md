@@ -7,6 +7,8 @@ On HyperV Machine
 	DOS> winrm quickconfig
 	DOS> winrm set winrm/config/service/auth @{Basic="true"}
 	DOS> winrm set winrm/config/service @{AllowUnencrypted="true"}
+	DOS> winrm e winrm/config/listener
+	(record the details of the listener to be used in `./settings.conf`)
 
 
 
