@@ -10,6 +10,7 @@ import hmac
 import ntpath
 import os
 import pprint
+import sys
 
 # setup the conf object and set default values...
 conf = ConfigParser()
@@ -22,22 +23,23 @@ conf.add_section('WEBSERVER')
 conf.set('WEBSERVER', 'host', '10.223.130.146')
 conf.set('WEBSERVER', 'port', '80') # cloudstack only supports 443 and 80
 conf.set('WEBSERVER', 'base_uri', '/')
-conf.set('WEBSERVER', 'files_path', '/mnt/share/vhds')
+conf.set('WEBSERVER', 'files_path', '/mnt/share/vhds') # no trailing slash
 conf.set('WEBSERVER', 'username', 'root')
 conf.set('WEBSERVER', 'password', 'password')
 
 # read in config files if they exists
 conf.read(['./settings.conf', './running.conf'])
 
-def copy_vhd_to_webserver(vhd_path):
-	return hyperv.powershell('%s -l %s -pw %s "%s" %s:%s' % (
+def copy_vhd_to_webserver(vhd_path, vhd_name):
+	return hyperv.powershell('%s -l %s -pw %s "%s" %s:%s/%s' % (
 		conf.get('HYPERV', 'pscp_exe'),
 		conf.get('WEBSERVER', 'username'),
 		conf.get('WEBSERVER', 'password'),
 		vhd_path,
 		conf.get('WEBSERVER', 'host'),
-		conf.get('WEBSERVER', 'files_path')
-		))
+		conf.get('WEBSERVER', 'files_path'),
+		vhd_name
+	))
 
 
 if __name__ == "__main__":
@@ -48,7 +50,11 @@ if __name__ == "__main__":
 	vm_input = []
 	if os.path.exists(conf.get('HYPERV', 'migrate_input')):
 		with open(conf.get('HYPERV', 'migrate_input'), 'r') as f:
-			vm_input = json.load(f)
+			try:
+				vm_input = json.load(f)
+			except:
+				print sys.exc_info()
+				sys.exit("Error in the formatting of '%s'" % (conf.get('HYPERV', 'migrate_input')))
 
 	vms = []
 	if vm_input: # make sure there is data in the file
@@ -65,11 +71,17 @@ if __name__ == "__main__":
 					cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 					if ok:
 						vm_out['cores'] = int(cpu[0]['ProcessorsPerSocket']) * int(cpu[0]['SocketCount'])
+					else:
+						print('Get-VMCPUCount powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+						print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 
 					# get memory
 					memory, ok = hyperv.powershell('Get-VMMemory -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 					if ok:
 						vm_out['memory'] = int(memory[0]['Reservation'])
+					else:
+						print('Get-VMMemory powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+						print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 
 					# record their starting state and bring down if running
 					if int(vm_raw['EnabledState']) == HyperV.VM_RUNNING:
@@ -78,6 +90,9 @@ if __name__ == "__main__":
 						status, ok = hyperv.powershell('Stop-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 						if ok:
 							print('Stopped %s' % (vm_in['hyperv_vm_name']))
+						else:
+							print('Stop-VM powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 					elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
 						vm_out['state'] = 'stopped'
 						print('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
@@ -92,27 +107,37 @@ if __name__ == "__main__":
 							for disk in disks:
 								if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
 									vm_out['disks'].append({
-										'name':ntpath.split(disk['DiskImage'])[1].split('.')[0],
+										'name':ntpath.split(disk['DiskImage'])[1].replace(' ', '-').split('.')[0],
 										'url':'%s://%s:%s%s%s' % (
 											'https' if conf.get('WEBSERVER', 'port') == '443' else 'http',
 											conf.get('WEBSERVER', 'host'),
 											conf.get('WEBSERVER', 'port'),
 											conf.get('WEBSERVER', 'base_uri'),
-											ntpath.split(disk['DiskImage'])[1]
+											ntpath.split(disk['DiskImage'])[1].replace(' ', '-')
 											)
 										})
 									print('Copying drive %s' % (disk['DiskImage']))
-									result, ok = copy_vhd_to_webserver(disk['DiskImage'])
+									result, ok = copy_vhd_to_webserver(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
 									if ok:
 										print('Finished copy...')
 									else:
 										print('Copy failed...')
+										print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+								else:
+									print('Missing disk details in the vm object')
+									print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+						else:
+							print('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 
 					# bring the machines back up that were running now that we copied their disks
 					if vm_out['state'] == 'running':
 						status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 						if ok:
 							print('Started the server since it was running at the beginning of this process.')
+						else:
+							print('Failed to restart the server.')
+							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 
 					print('Finished preparing %s' % (vm_in['hyperv_vm_name']))
 
@@ -176,6 +201,8 @@ if __name__ == "__main__":
 				}))
 				if template:
 					print('Template created...')
+				else:
+					print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
 
 				# check if there are data disks
 				if len(vm['disks']) > 1:
@@ -193,6 +220,8 @@ if __name__ == "__main__":
 						}))
 						if volume:
 							print('Volume uploaded...')
+						else:
+							print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
 		else:
 			print('We are missing settings fields for %s' % (vm['hyperv_vm_name']))
 
