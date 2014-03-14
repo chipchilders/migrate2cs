@@ -101,11 +101,11 @@ if __name__ == "__main__":
 											)
 										})
 									print('Copying drive %s' % (disk['DiskImage']))
-									#result, ok = copy_vhd_to_webserver(disk['DiskImage'])
-									#if ok:
-									#	print('Finished copy...')
-									#else:
-									#	print('Copy failed...')
+									result, ok = copy_vhd_to_webserver(disk['DiskImage'])
+									if ok:
+										print('Finished copy...')
+									else:
+										print('Copy failed...')
 
 					# bring the machines back up that were running now that we copied their disks
 					if vm_out['state'] == 'running':
