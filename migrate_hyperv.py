@@ -52,6 +52,8 @@ if __name__ == "__main__":
 			if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in: # make sure the minimum fields were entered
 				objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 				if objs and ok: # make sure it found the specified VM
+					print('Preparing %s\n%s\n' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
+
 					vm_raw = objs[0]
 					vm_out = {'name': vm_in['hyperv_vm_name']}
 					
@@ -65,28 +67,16 @@ if __name__ == "__main__":
 					if ok:
 						vm_out['memory'] = int(memory[0]['Reservation'])
 
-					# handle exporting running vms
+					# record their starting state and bring down if running
 					if int(vm_raw['EnabledState']) == HyperV.VM_RUNNING:
 						vm_out['state'] = 'running'
 						print('VM %s is Running' % (vm_in['hyperv_vm_name']))
 						status, ok = hyperv.powershell('Stop-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 						if ok:
 							print('Stopped %s' % (vm_out['name']))
-							#export, ok = hyperv.powershell('Export-VM -VM "%s" -Server "%s" -Path "%s" -CopyState -Wait -Force' % 
-							#	(vm_in['hyperv_vm_name'], vm_in['hyperv_server'], conf.get('HYPERV', 'export_path')))
-							#if ok:
-							#	print('Exported %s' % (vm_in['hyperv_vm_name']))
-							#	status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
-							#	if ok:
-							#		print('Started %s' % (vm_in['hyperv_vm_name']))
-					# handle exporting stopped vms
 					elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
 						vm_out['state'] = 'stopped'
 						print('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
-						#export, ok = hyperv.powershell('Export-VM -VM "%s" -Server "%s" -Path "%s" -CopyState -Wait -Force' % 
-						#	(vm_in['hyperv_vm_name'], vm_in['hyperv_server'], conf.get('HYPERV', 'export_path')))
-						#if ok:
-						#	print('Exported %s' % (vm_in['hyperv_vm_name']))
 					else: # this should be improved...
 						vm_out['state'] = 'unknown'
 						print('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
@@ -98,6 +88,7 @@ if __name__ == "__main__":
 							for disk in disks:
 								if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
 									vm_out['disks'].append({
+										'name':ntpath.split(disk['DiskImage'])[1],
 										'url':'%s://%s:%s%s%s' % (
 											'https' if conf.get('WEBSERVER', 'port') == '443' else 'http',
 											conf.get('WEBSERVER', 'host'),
@@ -106,18 +97,24 @@ if __name__ == "__main__":
 											ntpath.split(disk['DiskImage'])[1]
 											)
 										})
-									print('Copying drive for %s from %s' % (vm_in['hyperv_vm_name'], disk['DiskImage']))
+									print('Copying drive %s' % (vm_in['hyperv_vm_name'], disk['DiskImage']))
 									result, ok = copy_vhd_to_webserver(disk['DiskImage'])
 									if ok:
 										print('Finished copy...')
 									else:
 										print('Copy failed...')
 
+					# bring the machines back up that were running now that we copied their disks
+					if vm_out['state'] == 'running':
+						status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+						if ok:
+							print('Started the server since it was running at the beginning of this process.')
 
+					print('\nFinished preparing %s' % (vm_in['hyperv_vm_name']))
 
 					vms.append(vm_out)
 
-	print ""
+	print "\nBuilt the following details"
 	pprint.pprint(vms)
 
 
