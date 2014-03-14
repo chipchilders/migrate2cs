@@ -17,7 +17,9 @@ conf.set('HYPERV', 'pscp_exe', 'C:\pscp.exe')
 
 conf.add_section('WEBSERVER')
 conf.set('WEBSERVER', 'host', '10.223.130.146')
-conf.set('WEBSERVER', 'path', '/mnt/share/vhds')
+conf.set('WEBSERVER', 'port', '80')
+conf.set('WEBSERVER', 'base_uri', '/')
+conf.set('WEBSERVER', 'files_path', '/mnt/share/vhds')
 conf.set('WEBSERVER', 'username', 'root')
 conf.set('WEBSERVER', 'password', 'password')
 
@@ -25,14 +27,15 @@ conf.set('WEBSERVER', 'password', 'password')
 conf.read(['./settings.conf', './running.conf'])
 
 def copy_vhd_to_webserver(vhd_path):
-	result, ok = hyperv.powershell('%s -l %s -pw %s %s %s:%s' % (
+	return hyperv.powershell('%s -l %s -pw %s "%s" %s:%s' % (
 		conf.get('HYPERV', 'pscp_exe'),
 		conf.get('WEBSERVER', 'username'),
 		conf.get('WEBSERVER', 'password'),
 		vhd_path,
 		conf.get('WEBSERVER', 'host'),
-		conf.get('WEBSERVER', 'path')
+		conf.get('WEBSERVER', 'files_path')
 		))
+
 
 if __name__ == "__main__":
 	# comment out the following line to keep a history of the requests over multiple runs of this file.
@@ -94,9 +97,20 @@ if __name__ == "__main__":
 							vm_out['disks'] = []
 							for disk in disks:
 								if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
-									vm_out['disks'].append({'hyperv_path':disk['DiskImage']})
-									print(ntpath.split(disk['DiskImage']))
+									vm_out['disks'].append({
+										'url':'http://%s:%s%s%s' % (
+											conf.get('WEBSERVER', 'host'),
+											conf.get('WEBSERVER', 'port'),
+											conf.get('WEBSERVER', 'base_uri'),
+											ntpath.split(disk['DiskImage'])[1]
+											)
+										})
 									print('Copying drive for %s from %s' % (vm_in['hyperv_vm_name'], disk['DiskImage']))
+									result, ok = copy_vhd_to_webserver(disk['DiskImage'])
+									if ok:
+										print('Finished copy...')
+									else:
+										print('Copy failed...')
 
 
 
