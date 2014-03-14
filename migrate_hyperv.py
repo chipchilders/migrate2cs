@@ -52,10 +52,10 @@ if __name__ == "__main__":
 			if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in: # make sure the minimum fields were entered
 				objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 				if objs and ok: # make sure it found the specified VM
-					print('Preparing %s\n%s\n' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
+					print('\nPREPARING %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
 
 					vm_raw = objs[0]
-					vm_out = {'name': vm_in['hyperv_vm_name']}
+					vm_out = vm_in
 					
 					# get cores
 					cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
@@ -97,7 +97,7 @@ if __name__ == "__main__":
 											ntpath.split(disk['DiskImage'])[1]
 											)
 										})
-									print('Copying drive %s' % (vm_in['hyperv_vm_name'], disk['DiskImage']))
+									print('Copying drive %s' % (disk['DiskImage']))
 									result, ok = copy_vhd_to_webserver(disk['DiskImage'])
 									if ok:
 										print('Finished copy...')
