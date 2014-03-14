@@ -123,9 +123,6 @@ if __name__ == "__main__":
 									else:
 										print('Copy failed...')
 										print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
-								else:
-									print('Missing disk details in the vm object')
-									print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 						else:
 							print('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
 							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
