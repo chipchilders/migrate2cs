@@ -76,7 +76,7 @@ if __name__ == "__main__":
 						print('VM %s is Running' % (vm_in['hyperv_vm_name']))
 						status, ok = hyperv.powershell('Stop-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 						if ok:
-							print('Stopped %s' % (vm_out['name']))
+							print('Stopped %s' % (vm_in['hyperv_vm_name']))
 					elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
 						vm_out['state'] = 'stopped'
 						print('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
