@@ -12,10 +12,26 @@ conf = ConfigParser()
 conf.add_section('HYPERV')
 conf.set('HYPERV', 'export_path', 'C:\RemoteExport')
 conf.set('HYPERV', 'migrate_input', './migrate_hyperv_input.json')
+conf.set('HYPERV', 'pscp_exe', 'C:\pscp.exe')
+
+conf.add_section('WEBSERVER')
+conf.set('WEBSERVER', 'host', '10.223.130.146')
+conf.set('WEBSERVER', 'path', '/mnt/share/vhds')
+conf.set('WEBSERVER', 'username', 'root')
+conf.set('WEBSERVER', 'password', 'password')
 
 # read in config files if they exists
 conf.read(['./settings.conf', './running.conf'])
 
+def copy_vhd_to_webserver(vhd_path):
+	result, ok = hyperv.powershell('%s -l %s -pw %s %s %s:%s' % (
+		conf.get('HYPERV', 'pscp_exe'),
+		conf.get('WEBSERVER', 'username'),
+		conf.get('WEBSERVER', 'password'),
+		vhd_path,
+		conf.get('WEBSERVER', 'host'),
+		conf.get('WEBSERVER', 'path')
+		))
 
 if __name__ == "__main__":
 	vm_input = []
@@ -49,24 +65,31 @@ if __name__ == "__main__":
 						status, ok = hyperv.powershell('Stop-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 						if ok:
 							print('Stopped %s' % (vm_out['name']))
-							export, ok = hyperv.powershell('Export-VM -VM "%s" -Server "%s" -Path "%s" -CopyState -Wait -Force' % 
-								(vm_in['hyperv_vm_name'], vm_in['hyperv_server'], conf.get('HYPERV', 'export_path')))
-							if ok:
-								print('Exported %s' % (vm_in['hyperv_vm_name']))
-								status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
-								if ok:
-									print('Started %s' % (vm_in['hyperv_vm_name']))
+							#export, ok = hyperv.powershell('Export-VM -VM "%s" -Server "%s" -Path "%s" -CopyState -Wait -Force' % 
+							#	(vm_in['hyperv_vm_name'], vm_in['hyperv_server'], conf.get('HYPERV', 'export_path')))
+							#if ok:
+							#	print('Exported %s' % (vm_in['hyperv_vm_name']))
+							#	status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+							#	if ok:
+							#		print('Started %s' % (vm_in['hyperv_vm_name']))
 					# handle exporting stopped vms
 					elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
 						vm_out['state'] = 'stopped'
 						print('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
-						export, ok = hyperv.powershell('Export-VM -VM "%s" -Server "%s" -Path "%s" -CopyState -Wait -Force' % 
-							(vm_in['hyperv_vm_name'], vm_in['hyperv_server'], conf.get('HYPERV', 'export_path')))
-						if ok:
-							print('Exported %s' % (vm_in['hyperv_vm_name']))
+						#export, ok = hyperv.powershell('Export-VM -VM "%s" -Server "%s" -Path "%s" -CopyState -Wait -Force' % 
+						#	(vm_in['hyperv_vm_name'], vm_in['hyperv_server'], conf.get('HYPERV', 'export_path')))
+						#if ok:
+						#	print('Exported %s' % (vm_in['hyperv_vm_name']))
 					else: # this should be improved...
 						vm_out['state'] = 'unknown'
 						print('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
+
+					if (vm_out['state'] == 'running' and ok) or vm_out['state'] == 'stopped':
+						disks, ok = hyperv.powershell('Get-VMDisk -VM "%s"' % (vm_in['hyperv_vm_name']))
+						if ok:
+							print disks
+
+
 
 					vms.append(vm_out)
 
