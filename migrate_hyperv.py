@@ -34,6 +34,9 @@ def copy_vhd_to_webserver(vhd_path):
 		))
 
 if __name__ == "__main__":
+	# comment out the following line to keep a history of the requests over multiple runs of this file.
+	open(conf.get('HYPERV', 'log_file'), 'w').close() # cleans the powershell requests log before execution so it only includes this run.
+
 	vm_input = []
 	if os.path.exists(conf.get('HYPERV', 'migrate_input')):
 		with open(conf.get('HYPERV', 'migrate_input'), 'r') as f:
@@ -93,6 +96,7 @@ if __name__ == "__main__":
 
 					vms.append(vm_out)
 
+	print ""
 	pprint.pprint(vms)
 
 

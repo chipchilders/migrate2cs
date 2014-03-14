@@ -8,6 +8,8 @@ import winrm
 conf = ConfigParser()
 conf.add_section('HYPERV')
 conf.set('HYPERV', 'module_path', 'C:\Program Files\modules\HyperV')
+conf.set('HYPERV', 'logging', 'True')
+conf.set('HYPERV', 'log_file', './logs/hyperv_ps.log')
 
 # read in config if it exists
 conf.read("./settings.conf")
@@ -31,8 +33,15 @@ class HyperV:
 	def powershell(self, command):
 		ok = False
 		cmd = 'powershell -Command "Import-Module \'%s\'; %s | Format-List"' % (conf.get('HYPERV', 'module_path'), command.replace('"', '\\\"'))
-		print(cmd)
 		r = self.session.run_cmd(cmd)
+		if conf.getboolean('HYPERV', 'logging'):
+			with open(conf.get('HYPERV', 'log_file'), 'a') as f:
+				f.write('request:\n')
+				f.write(cmd)
+				f.write('\n\n')
+				f.write('response:\n')
+				f.write(r.std_out)
+				f.write('\n\n\n\n')
 		if r.status_code == 0:
 			ok = True
 		objs = []
