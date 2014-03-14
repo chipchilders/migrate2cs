@@ -51,7 +51,7 @@ if __name__ == "__main__":
 	if networks and 'network' in networks:
 		print('\nNETWORKS:\n---------')
 		for network in networks['network']:
-			print('=> %s - %s <=' % (network['name'], network['cidr']))
+			print('=> %s - %s <=' % (network['name'], network['cidr'] if 'cidr' in network else 'shared'))
 			print('"cs_network":"%s",' % (network['id']))
 			print("")
 
