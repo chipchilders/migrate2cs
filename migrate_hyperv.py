@@ -43,6 +43,7 @@ def copy_vhd_to_webserver(vhd_path):
 if __name__ == "__main__":
 	# comment out the following line to keep a history of the requests over multiple runs of this file.
 	open(conf.get('HYPERV', 'log_file'), 'w').close() # cleans the powershell requests log before execution so it only includes this run.
+	open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # cleans the cloudstack requests log before execution so it only includes this run.
 
 	vm_input = []
 	if os.path.exists(conf.get('HYPERV', 'migrate_input')):
@@ -167,7 +168,7 @@ if __name__ == "__main__":
 					'displaytext':vm['disks'][0]['name'],
 					'format':'VHD',
 					'hypervisor':'XenServer',
-					'ostype':'138', # None
+					'ostypeid':'138', # None
 					'url':vm['disks'][0]['url'],
 					'zoneid':zone,
 					'domainid':domain,

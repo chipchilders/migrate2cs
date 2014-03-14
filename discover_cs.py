@@ -43,7 +43,7 @@ if __name__ == "__main__":
 		print('\nACCOUNTS:\n---------')
 		for account in accounts['account']:
 			print('=> %s/%s <=' % (account['domain'], account['name']))
-			print('"cs_account":"%s",' % (account['id']))
+			print('"cs_account":"%s",' % (account['name']))
 			print('"cs_domain":"%s",' % (account['domainid']))
 			print("")
 
