@@ -17,7 +17,7 @@ conf.set('HYPERV', 'pscp_exe', 'C:\pscp.exe')
 
 conf.add_section('WEBSERVER')
 conf.set('WEBSERVER', 'host', '10.223.130.146')
-conf.set('WEBSERVER', 'port', '80')
+conf.set('WEBSERVER', 'port', '80') # cloudstack only supports 443 and 80
 conf.set('WEBSERVER', 'base_uri', '/')
 conf.set('WEBSERVER', 'files_path', '/mnt/share/vhds')
 conf.set('WEBSERVER', 'username', 'root')
@@ -98,7 +98,8 @@ if __name__ == "__main__":
 							for disk in disks:
 								if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
 									vm_out['disks'].append({
-										'url':'http://%s:%s%s%s' % (
+										'url':'%s://%s:%s%s%s' % (
+											'https' if conf.get('WEBSERVER', 'port') == '443' else 'http',
 											conf.get('WEBSERVER', 'host'),
 											conf.get('WEBSERVER', 'port'),
 											conf.get('WEBSERVER', 'base_uri'),
