@@ -4,6 +4,7 @@ from ConfigParser import ConfigParser
 from lib.hyperv import HyperV # the class
 from lib.hyperv import hyperv # the connection
 import json
+import ntpath
 import os
 import pprint
 
@@ -90,7 +91,12 @@ if __name__ == "__main__":
 					if (vm_out['state'] == 'running' and ok) or vm_out['state'] == 'stopped':
 						disks, ok = hyperv.powershell('Get-VMDisk -VM "%s"' % (vm_in['hyperv_vm_name']))
 						if ok:
-							print disks
+							vm_out['disks'] = []
+							for disk in disks:
+								if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
+									vm_out['disks'].append({'hyperv_path':disk['DiskImage']})
+									print(ntpath.split(disk['DiskImage']))
+									print('Copying drive for %s from %s' % (vm_in['hyperv_vm_name'], disk['DiskImage']))
 
 
 

@@ -39,9 +39,9 @@ class HyperV:
 				f.write('request:\n')
 				f.write(cmd)
 				f.write('\n\n')
-				f.write('response:\n')
+				f.write('response:')
 				f.write(r.std_out)
-				f.write('\n\n\n\n')
+				f.write('\n\n\n')
 		if r.status_code == 0:
 			ok = True
 		objs = []
