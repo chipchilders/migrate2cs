@@ -177,6 +177,12 @@ if __name__ == "__main__":
 			## setup the cloudstack details we know (or are using defaults for)
 			if 'cs_zone' not in vm and conf.has_option('CLOUDSTACK', 'default_zone'):
 				vm['cs_zone'] = conf.get('CLOUDSTACK', 'default_zone')
+				zone = cs.request(dict({'command':'listZones', 'id':vm['cs_zone']}))
+				if zone and 'zone' in zone and len(zone['zone']) > 0:
+					if zone['zone'][0]['networktype'] == 'Basic':
+						vm['cs_zone_network'] = 'basic'
+					else:
+						vm['cs_zone_network'] = 'advanced'
 
 			if 'cs_domain' not in vm and conf.has_option('CLOUDSTACK', 'default_domain'):
 				vm['cs_domain'] = conf.get('CLOUDSTACK', 'default_domain')
@@ -262,18 +268,20 @@ if __name__ == "__main__":
 			vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 			if vm_id not in json.loads(conf.get('STATE', 'started')):
 				started = False
+				print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-'))
 				# create a VM instance using the template
-				launched_vm = cs.request(dict({
+				cmd = dict({
 					'command':'deployVirtualMachine',
 					'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
 					'templateid':vm['cs_template_id'],
 					'serviceofferingid':vm['cs_service_offering'],
-					'networkids':vm['cs_network'],
 					'zoneid':vm['cs_zone'],
 					'domainid':vm['cs_domain'],
 					'account':vm['cs_account']
-				}))
-
+				})
+				if vm['cs_zone_network'] == 'advanced':
+					cmd['networkids'] = vm['cs_network'],
+				launched_vm = cs.request(cmd)
 				if launched_vm:
 					#print('VM \'%s\' started...' % (template['template'][0]['id']))
 					#vm['cs_template_id'] = template['template'][0]['id']
