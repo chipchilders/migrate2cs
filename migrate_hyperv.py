@@ -61,7 +61,10 @@ if __name__ == "__main__":
 	vms = []
 	if vm_input: # make sure there is data in the file
 		for vm_in in vm_input: # loop through the vms in the file
-			if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in: # make sure the minimum fields were entered
+			 # make sure the minimum fields were entered and they have not been processed already
+			if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in and
+				hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest() not in json.loads(conf.get('STATE', 'exported')):
+				
 				objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 				if objs and ok: # make sure it found the specified VM
 					print('\nEXPORTING %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
@@ -120,12 +123,12 @@ if __name__ == "__main__":
 											)
 										})
 									print('Copying drive %s' % (disk['DiskImage']))
-									result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
-									if ok:
-										print('Finished copy...')
-									else:
-										print('Copy failed...')
-										print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+									#result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
+									#if ok:
+									#	print('Finished copy...')
+									#else:
+									#	print('Copy failed...')
+									#	print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 						else:
 							print('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
 							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
@@ -238,5 +241,5 @@ if __name__ == "__main__":
 
 
 	### clean up the running.conf file...
-	os.remove('./running.conf')
+	#os.remove('./running.conf')
 
