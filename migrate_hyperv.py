@@ -177,16 +177,16 @@ if __name__ == "__main__":
 			if 'cs_zone' not in vm and conf.has_option('CLOUDSTACK', 'default_zone'):
 				vm['cs_zone'] = conf.get('CLOUDSTACK', 'default_zone')
 
-			if 'cs_domain' not in vm and conf.has_option('CLOUDSTACK', 'default_domain')::
+			if 'cs_domain' not in vm and conf.has_option('CLOUDSTACK', 'default_domain'):
 				vm['cs_domain'] = conf.get('CLOUDSTACK', 'default_domain')
 
-			if 'cs_account' not in vm and conf.has_option('CLOUDSTACK', 'default_account')::
+			if 'cs_account' not in vm and conf.has_option('CLOUDSTACK', 'default_account'):
 				vm['cs_account'] = conf.get('CLOUDSTACK', 'default_account')
 
-			if 'cs_network' not in vm and conf.has_option('CLOUDSTACK', 'default_network')::
+			if 'cs_network' not in vm and conf.has_option('CLOUDSTACK', 'default_network'):
 				vm['cs_network'] = conf.get('CLOUDSTACK', 'default_network')
 
-			if 'cs_service_offering' not in vm and conf.has_option('CLOUDSTACK', 'default_service_offering')::
+			if 'cs_service_offering' not in vm and conf.has_option('CLOUDSTACK', 'default_service_offering'):
 				vm['cs_service_offering'] = conf.get('CLOUDSTACK', 'default_service_offering')
 
 
