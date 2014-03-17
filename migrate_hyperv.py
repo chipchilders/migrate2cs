@@ -73,6 +73,7 @@ if __name__ == "__main__":
 				if objs and ok: # make sure it found the specified VM
 					print('\nEXPORTING %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
 
+					exported = False
 					vm_raw = objs[0]
 					vm_out = vm_in
 					vm_out['id'] = vm_id
@@ -130,6 +131,7 @@ if __name__ == "__main__":
 									result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
 									if ok:
 										print('Finished copy...')
+										exported = True
 									else:
 										print('Copy failed...')
 										print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
@@ -148,16 +150,17 @@ if __name__ == "__main__":
 
 					print('Finished exporting %s' % (vm_in['hyperv_vm_name']))
 
-					vms.append(vm_out)
+					if exported:
+						vms.append(vm_out)
 
-					### Update the running.conf file
-					conf.read("./running.conf") # make sure we have everything from this file already
-					exported = json.loads(conf.get('STATE', 'exported'))
-					exported.append(vm_out['id'])
-					conf.set('STATE', 'exported', json.dumps(exported))
-					conf.set('STATE', 'vms', json.dumps(vms))
-					with open('running.conf', 'wb') as f:
-						conf.write(f) # update the file to include the changes we have made
+						### Update the running.conf file
+						conf.read("./running.conf") # make sure we have everything from this file already
+						exported = json.loads(conf.get('STATE', 'exported'))
+						exported.append(vm_out['id'])
+						conf.set('STATE', 'exported', json.dumps(exported))
+						conf.set('STATE', 'vms', json.dumps(vms))
+						with open('running.conf', 'wb') as f:
+							conf.write(f) # update the file to include the changes we have made
 
 	print "\nBuilt the following details"
 	pprint.pprint(vms)
@@ -168,7 +171,9 @@ if __name__ == "__main__":
 		vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 		if vm_id not in json.loads(conf.get('STATE', 'imported')):
 			print('\nIMPORTING %s\n%s' % (vm['hyperv_vm_name'], '----------'+'-'*len(vm['hyperv_vm_name'])))
+			imported = False
 
+			## setup the cloudstack details we know (or are using defaults for)
 			zone = None
 			if 'cs_zone' in vm:
 				zone = vm['cs_zone']
@@ -221,6 +226,7 @@ if __name__ == "__main__":
 					if template:
 						print('Template %s created...' % (template['template'][0]['id']))
 						vm['template_id'] = template['template'][0]['id']
+						imported = True
 					else:
 						print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
 
@@ -228,6 +234,7 @@ if __name__ == "__main__":
 					if len(vm['disks']) > 1:
 						# upload the remaining disks as volumes
 						for disk in vm['disks'][1:]:
+							imported = False # reset because we have more to do...
 							print('Uploading data volume %s...' % (disk['name']))
 							volume = cs.request(dict({
 								'command':'uploadVolume',
@@ -238,23 +245,30 @@ if __name__ == "__main__":
 								'domainid':domain,
 								'account':account
 							}))
-							if volume:
-								print('Volume uploaded...')
+							if volume and 'jobresult' in volume and 'volume' in volume['jobresult']:
+								volume_id = volume['jobresult']['volume']['id']
+								print('Volume %s uploaded...' % (volume_id))
+								if 'volumes' in vm:
+									vm['volumes'].append(volume_id)
+								else:
+									vm['volumes'] = [volume_id]
+								imported = True
 							else:
 								print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
 			else:
 				print('We are missing settings fields for %s' % (vm['hyperv_vm_name']))
 
-			### Update the running.conf file
-			conf.read("./running.conf") # make sure we have everything from this file already
-			imported = json.loads(conf.get('STATE', 'imported'))
-			imported.append(vm['id'])
-			conf.set('STATE', 'imported', json.dumps(imported))
-			conf.set('STATE', 'vms', json.dumps(vms))
-			with open('running.conf', 'wb') as f:
-				conf.write(f) # update the file to include the changes we have made
+			if imported:
+				### Update the running.conf file
+				conf.read("./running.conf") # make sure we have everything from this file already
+				imported = json.loads(conf.get('STATE', 'imported'))
+				imported.append(vm['id'])
+				conf.set('STATE', 'imported', json.dumps(imported))
+				conf.set('STATE', 'vms', json.dumps(vms))
+				with open('running.conf', 'wb') as f:
+					conf.write(f) # update the file to include the changes we have made
 
 
 	### clean up the running.conf file...
-	os.remove('./running.conf')
+	#os.remove('./running.conf')
 
