@@ -60,7 +60,10 @@ if __name__ == "__main__":
 
 	print('\n-----------------\nRUNNING VM EXPORT\n-----------------')
 	# collect data about the VMs from HyperV and populate a list of VMs
-	vms = []
+
+	# initialize the 'vms' variable from the existing config...
+	vms = json.loads(conf.get('STATE', 'vms'))
+
 	if vm_input: # make sure there is data in the file
 		for vm_in in vm_input: # loop through the vms in the file
 			# make sure the minimum fields were entered and they have not been processed already
@@ -240,6 +243,15 @@ if __name__ == "__main__":
 								print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
 			else:
 				print('We are missing settings fields for %s' % (vm['hyperv_vm_name']))
+
+			### Update the running.conf file
+			conf.read("./running.conf") # make sure we have everything from this file already
+			imported = json.loads(conf.get('STATE', 'imported'))
+			imported.append(vm['id'])
+			conf.set('STATE', 'imported', json.dumps(imported))
+			conf.set('STATE', 'vms', json.dumps(vms))
+			with open('running.conf', 'wb') as f:
+				conf.write(f) # update the file to include the changes we have made
 
 
 	### clean up the running.conf file...

@@ -10,6 +10,17 @@ On HyperV Machine
 	DOS> winrm e winrm/config/listener
 (record the details of the listener to be used in `./settings.conf`)
 
+### Install pscp.exe
+	PS> cd C:\
+	PS> $webclient = New-Object System.Net.WebClient
+	PS> $url = "http://the.earth.li/~sgtatham/putty/latest/x86/pscp.exe"
+	PS> $file = "$pwd\pscp.exe"
+	PS> $webclient.DownloadFile($url,$file)
+(this downloads the `pscp.exe` to the HyperV server)
+
+NOTE: if you change the location of `pscp.exe`, you will need to reflect the change in `./settings.conf`
+
+
 
 
 On Migration Machine
