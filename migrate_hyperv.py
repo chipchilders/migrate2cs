@@ -57,7 +57,7 @@ if __name__ == "__main__":
 				print sys.exc_info()
 				sys.exit("Error in the formatting of '%s'" % (conf.get('HYPERV', 'migration_input_file')))
 
-	print('\nDOING VM EXPORT\n---------------\n')
+	print('\nRUNNING VM EXPORT\n-----------------\n')
 	# collect data about the VMs from HyperV and populate a list of VMs
 	vms = []
 	if vm_input: # make sure there is data in the file
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 	print "\nBuilt the following details"
 	pprint.pprint(vms)
 
-	print('\nDOING VM IMPORT\n---------------\n')
+	print('\nRUNNING VM IMPORT\n-----------------\n')
 	# go through the VMs and import them into CS
 	for i, vm in enumerate(vms):
 		print('\nIMPORTING %s\n%s' % (vm['hyperv_vm_name'], '----------'+'-'*len(vm['hyperv_vm_name'])))
