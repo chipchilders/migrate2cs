@@ -268,7 +268,7 @@ if __name__ == "__main__":
 			vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 			if vm_id not in json.loads(conf.get('STATE', 'started')):
 				started = False
-				print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-'))
+				print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-')))
 				# create a VM instance using the template
 				cmd = dict({
 					'command':'deployVirtualMachine',
