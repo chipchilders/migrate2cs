@@ -128,6 +128,7 @@ if __name__ == "__main__":
 											)
 										})
 									print('Copying drive %s' % (disk['DiskImage']))
+									exported = True
 									#result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
 									#if ok:
 									#	print('Finished copy...')
@@ -256,7 +257,7 @@ if __name__ == "__main__":
 
 	print('\n\n-------------------------\n- STARTING IMPORTED VMS -\n-------------------------')
 	# go through the imported VMs and start them and attach their volumes if they have any
-	while len(conf.set('STATE', 'started', json.dumps(started))) != len(conf.set('STATE', 'imported', json.dumps(imported))):
+	while len(json.loads(conf.get('STATE', 'started'))) != len(json.loads(conf.get('STATE', 'imported'))):
 		for i, vm in enumerate(vms):
 			vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 			if vm_id not in json.loads(conf.get('STATE', 'started')):
