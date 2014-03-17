@@ -23,13 +23,13 @@ conf.read(['./settings.conf', './running.conf'])
 
 conf.add_section('STATE') # STATE config section to maintain state of the running process
 if not conf.has_option('STATE', 'exported'):
-	conf.set('STATE', 'exported', '[]') # parsed with: json.loads(config.get('STATE', 'exported'))
+	conf.set('STATE', 'exported', '[]') # parsed with: json.loads(conf.get('STATE', 'exported'))
 if not conf.has_option('STATE', 'imported'):
-	conf.set('STATE', 'imported', '[]') # parsed with: json.loads(config.get('STATE', 'imported'))
+	conf.set('STATE', 'imported', '[]') # parsed with: json.loads(conf.get('STATE', 'imported'))
 if not conf.has_option('STATE', 'started'):
-	conf.set('STATE', 'started', '[]') # parsed with: json.loads(config.get('STATE', 'started'))
+	conf.set('STATE', 'started', '[]') # parsed with: json.loads(conf.get('STATE', 'started'))
 if not conf.has_option('STATE', 'vms'):
-	conf.set('STATE', 'vms', '[]') # parsed with: json.loads(config.get('STATE', 'vms'))
+	conf.set('STATE', 'vms', '[]') # parsed with: json.loads(conf.get('STATE', 'vms'))
 
 def copy_vhd_to_file_server(vhd_path, vhd_name):
 	return hyperv.powershell('%s -l %s -pw %s "%s" %s:%s/%s' % (
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 				print sys.exc_info()
 				sys.exit("Error in the formatting of '%s'" % (conf.get('HYPERV', 'migration_input_file')))
 
-	print('\nRUNNING VM EXPORT\n-----------------\n')
+	print('\n-----------------\nRUNNING VM EXPORT\n-----------------')
 	# collect data about the VMs from HyperV and populate a list of VMs
 	vms = []
 	if vm_input: # make sure there is data in the file
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 			if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in: # make sure the minimum fields were entered
 				objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 				if objs and ok: # make sure it found the specified VM
-					print('\nPREPARING %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
+					print('\nEXPORTING %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
 
 					vm_raw = objs[0]
 					vm_out = vm_in
@@ -140,13 +140,13 @@ if __name__ == "__main__":
 							print('Failed to restart the server.')
 							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 
-					print('Finished preparing %s' % (vm_in['hyperv_vm_name']))
+					print('Finished exporting %s' % (vm_in['hyperv_vm_name']))
 
 					vms.append(vm_out)
 
 					### Update the running.conf file
 					conf.read("./running.conf") # make sure we have everything from this file already
-					exported = json.loads(config.get('STATE', 'exported'))
+					exported = json.loads(conf.get('STATE', 'exported'))
 					exported.append(vm_out['id'])
 					conf.set('STATE', 'exported', json.dumps(exported))
 					conf.set('STATE', 'vms', json.dumps(vms))
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 	print "\nBuilt the following details"
 	pprint.pprint(vms)
 
-	print('\nRUNNING VM IMPORT\n-----------------\n')
+	print('\n-----------------\nRUNNING VM IMPORT\n-----------------')
 	# go through the VMs and import them into CS
 	for i, vm in enumerate(vms):
 		print('\nIMPORTING %s\n%s' % (vm['hyperv_vm_name'], '----------'+'-'*len(vm['hyperv_vm_name'])))
