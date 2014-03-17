@@ -20,7 +20,7 @@ conf.set('HYPERV', 'pscp_exe', 'C:\pscp.exe')
 # read in config files if they exists
 conf.read(['./settings.conf', './running.conf'])
 
-if not conf.has_section('STATE')
+if not conf.has_section('STATE'):
 	conf.add_section('STATE') # STATE config section to maintain state of the running process
 if not conf.has_option('STATE', 'exported'):
 	conf.set('STATE', 'exported', '[]') # parsed with: json.loads(conf.get('STATE', 'exported'))
