@@ -65,7 +65,7 @@ if __name__ == "__main__":
 		for vm_in in vm_input: # loop through the vms in the file
 			# make sure the minimum fields were entered and they have not been processed already
 			vm_id = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
-			if ('hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in and vm_id not in json.loads(conf.get('STATE', 'exported'))):
+			if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in and vm_id not in json.loads(conf.get('STATE', 'exported')):
 				objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 				if objs and ok: # make sure it found the specified VM
 					print('\nEXPORTING %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
@@ -124,12 +124,12 @@ if __name__ == "__main__":
 											)
 										})
 									print('Copying drive %s' % (disk['DiskImage']))
-									#result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
-									#if ok:
-									#	print('Finished copy...')
-									#else:
-									#	print('Copy failed...')
-									#	print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+									result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
+									if ok:
+										print('Finished copy...')
+									else:
+										print('Copy failed...')
+										print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 						else:
 							print('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
 							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
@@ -162,85 +162,86 @@ if __name__ == "__main__":
 	print('\n-----------------\nRUNNING VM IMPORT\n-----------------')
 	# go through the VMs and import them into CS
 	for i, vm in enumerate(vms):
-		print('\nIMPORTING %s\n%s' % (vm['hyperv_vm_name'], '----------'+'-'*len(vm['hyperv_vm_name'])))
+		vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
+		if vm_id not in json.loads(conf.get('STATE', 'imported')):
+			print('\nIMPORTING %s\n%s' % (vm['hyperv_vm_name'], '----------'+'-'*len(vm['hyperv_vm_name'])))
 
-		zone = None
-		if 'cs_zone' in vm:
-			zone = vm['cs_zone']
-		elif conf.has_option('CLOUDSTACK', 'default_zone'):
-			zone = conf.get('CLOUDSTACK', 'default_zone')
+			zone = None
+			if 'cs_zone' in vm:
+				zone = vm['cs_zone']
+			elif conf.has_option('CLOUDSTACK', 'default_zone'):
+				zone = conf.get('CLOUDSTACK', 'default_zone')
 
-		domain = None
-		if 'cs_domain' in vm:
-			domain = vm['cs_domain']
-		elif conf.has_option('CLOUDSTACK', 'default_domain'):
-			domain = conf.get('CLOUDSTACK', 'default_domain')
+			domain = None
+			if 'cs_domain' in vm:
+				domain = vm['cs_domain']
+			elif conf.has_option('CLOUDSTACK', 'default_domain'):
+				domain = conf.get('CLOUDSTACK', 'default_domain')
 
-		account = None
-		if 'cs_account' in vm:
-			account = vm['cs_account']
-		elif conf.has_option('CLOUDSTACK', 'default_account'):
-			account = conf.get('CLOUDSTACK', 'default_account')
+			account = None
+			if 'cs_account' in vm:
+				account = vm['cs_account']
+			elif conf.has_option('CLOUDSTACK', 'default_account'):
+				account = conf.get('CLOUDSTACK', 'default_account')
 
-		network = None
-		if 'cs_network' in vm:
-			network = vm['cs_network']
-		elif conf.has_option('CLOUDSTACK', 'default_network'):
-			network = conf.get('CLOUDSTACK', 'default_network')
+			network = None
+			if 'cs_network' in vm:
+				network = vm['cs_network']
+			elif conf.has_option('CLOUDSTACK', 'default_network'):
+				network = conf.get('CLOUDSTACK', 'default_network')
 
-		service_offering = None
-		if 'cs_service_offering' in vm:
-			service_offering = vm['cs_service_offering']
-		elif conf.has_option('CLOUDSTACK', 'default_service_offering'):
-			service_offering = conf.get('CLOUDSTACK', 'default_service_offering')
+			service_offering = None
+			if 'cs_service_offering' in vm:
+				service_offering = vm['cs_service_offering']
+			elif conf.has_option('CLOUDSTACK', 'default_service_offering'):
+				service_offering = conf.get('CLOUDSTACK', 'default_service_offering')
 
 
-		# make sure we have a complete config before we start
-		if zone and domain and account and network and service_offering:
-			# manage the disks
-			if 'disks' in vm and len(vm['disks']) > 0:
-				# register the first disk as a template since it is the root disk
-				print('Creating template for root volume %s...' % (vm['disks'][0]['name']))
-				template = cs.request(dict({
-					'command':'registerTemplate',
-					'name':vm['disks'][0]['name'].replace(' ', '-'),
-					'displaytext':vm['disks'][0]['name'],
-					'format':'VHD',
-					'hypervisor':'XenServer',
-					'ostypeid':'138', # None
-					'url':vm['disks'][0]['url'],
-					'zoneid':zone,
-					'domainid':domain,
-					'account':account
-				}))
-				if template:
-					print('Template created...')
-				else:
-					print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
+			# make sure we have a complete config before we start
+			if zone and domain and account and network and service_offering:
+				# manage the disks
+				if 'disks' in vm and len(vm['disks']) > 0:
+					# register the first disk as a template since it is the root disk
+					print('Creating template for root volume %s...' % (vm['disks'][0]['name']))
+					template = cs.request(dict({
+						'command':'registerTemplate',
+						'name':vm['disks'][0]['name'].replace(' ', '-'),
+						'displaytext':vm['disks'][0]['name'],
+						'format':'VHD',
+						'hypervisor':'XenServer',
+						'ostypeid':'138', # None
+						'url':vm['disks'][0]['url'],
+						'zoneid':zone,
+						'domainid':domain,
+						'account':account
+					}))
+					if template:
+						print('Template created...')
+					else:
+						print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
 
-				# check if there are data disks
-				if len(vm['disks']) > 1:
-					# upload the remaining disks as volumes
-					for disk in vm['disks'][1:]:
-						print('Uploading data volume %s...' % (disk['name']))
-						volume = cs.request(dict({
-							'command':'uploadVolume',
-							'name':disk['name'].replace(' ', '-'),
-							'format':'VHD',
-							'url':disk['url'],
-							'zoneid':zone,
-							'domainid':domain,
-							'account':account
-						}))
-						if volume:
-							print('Volume uploaded...')
-						else:
-							print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
-		else:
-			print('We are missing settings fields for %s' % (vm['hyperv_vm_name']))
-
+					# check if there are data disks
+					if len(vm['disks']) > 1:
+						# upload the remaining disks as volumes
+						for disk in vm['disks'][1:]:
+							print('Uploading data volume %s...' % (disk['name']))
+							volume = cs.request(dict({
+								'command':'uploadVolume',
+								'name':disk['name'].replace(' ', '-'),
+								'format':'VHD',
+								'url':disk['url'],
+								'zoneid':zone,
+								'domainid':domain,
+								'account':account
+							}))
+							if volume:
+								print('Volume uploaded...')
+							else:
+								print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
+			else:
+				print('We are missing settings fields for %s' % (vm['hyperv_vm_name']))
 
 
 	### clean up the running.conf file...
-	#os.remove('./running.conf')
+	os.remove('./running.conf')
 
