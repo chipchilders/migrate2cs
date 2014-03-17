@@ -64,7 +64,7 @@ class CloudStack(object):
 		self.errors = []
 		self.logging = logging
 		self.async_poll_interval = async_poll_interval # seconds
-	    
+		
 	def request(self, params):
 		"""Builds a query from params and return a json object of the result or None"""
 		if self.api_key and self.secret_key:
@@ -94,7 +94,7 @@ class CloudStack(object):
 			except urllib2.URLError, e:
 				self.errors.append("URLError: "+str(e.reason))
 				has_error = True
-			    
+				
 			#pprint.pprint(output) # this will print in the terminal the response without trying to isolate the response data
 			if output:
 				output = output[(params['command']).lower()+'response']

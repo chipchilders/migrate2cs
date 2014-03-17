@@ -15,29 +15,30 @@ import sys
 # setup the conf object and set default values...
 conf = ConfigParser()
 conf.add_section('HYPERV')
-conf.set('HYPERV', 'export_path', 'C:\RemoteExport')
-conf.set('HYPERV', 'migrate_input', './migrate_hyperv_input.json')
+conf.set('HYPERV', 'migration_input_file', './migrate_hyperv_input.json')
 conf.set('HYPERV', 'pscp_exe', 'C:\pscp.exe')
-
-conf.add_section('WEBSERVER')
-conf.set('WEBSERVER', 'host', '10.223.130.146')
-conf.set('WEBSERVER', 'port', '80') # cloudstack only supports 443 and 80
-conf.set('WEBSERVER', 'base_uri', '/')
-conf.set('WEBSERVER', 'files_path', '/mnt/share/vhds') # no trailing slash
-conf.set('WEBSERVER', 'username', 'root')
-conf.set('WEBSERVER', 'password', 'password')
 
 # read in config files if they exists
 conf.read(['./settings.conf', './running.conf'])
 
-def copy_vhd_to_webserver(vhd_path, vhd_name):
+conf.add_section('STATE') # STATE config section to maintain state of the running process
+if not conf.has_option('STATE', 'exported'):
+	conf.set('STATE', 'exported', '[]') # parsed with: json.loads(config.get('STATE', 'exported'))
+if not conf.has_option('STATE', 'imported'):
+	conf.set('STATE', 'imported', '[]') # parsed with: json.loads(config.get('STATE', 'imported'))
+if not conf.has_option('STATE', 'started'):
+	conf.set('STATE', 'started', '[]') # parsed with: json.loads(config.get('STATE', 'started'))
+if not conf.has_option('STATE', 'vms'):
+	conf.set('STATE', 'vms', '[]') # parsed with: json.loads(config.get('STATE', 'vms'))
+
+def copy_vhd_to_file_server(vhd_path, vhd_name):
 	return hyperv.powershell('%s -l %s -pw %s "%s" %s:%s/%s' % (
 		conf.get('HYPERV', 'pscp_exe'),
-		conf.get('WEBSERVER', 'username'),
-		conf.get('WEBSERVER', 'password'),
+		conf.get('FILESERVER', 'username'),
+		conf.get('FILESERVER', 'password'),
 		vhd_path,
-		conf.get('WEBSERVER', 'host'),
-		conf.get('WEBSERVER', 'files_path'),
+		conf.get('FILESERVER', 'host'),
+		conf.get('FILESERVER', 'files_path'),
 		vhd_name
 	))
 
@@ -48,14 +49,16 @@ if __name__ == "__main__":
 	open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # cleans the cloudstack requests log before execution so it only includes this run.
 
 	vm_input = []
-	if os.path.exists(conf.get('HYPERV', 'migrate_input')):
-		with open(conf.get('HYPERV', 'migrate_input'), 'r') as f:
+	if os.path.exists(conf.get('HYPERV', 'migration_input_file')):
+		with open(conf.get('HYPERV', 'migration_input_file'), 'r') as f:
 			try:
 				vm_input = json.load(f)
 			except:
 				print sys.exc_info()
-				sys.exit("Error in the formatting of '%s'" % (conf.get('HYPERV', 'migrate_input')))
+				sys.exit("Error in the formatting of '%s'" % (conf.get('HYPERV', 'migration_input_file')))
 
+	print('\nDOING VM EXPORT\n---------------\n')
+	# collect data about the VMs from HyperV and populate a list of VMs
 	vms = []
 	if vm_input: # make sure there is data in the file
 		for vm_in in vm_input: # loop through the vms in the file
@@ -66,6 +69,7 @@ if __name__ == "__main__":
 
 					vm_raw = objs[0]
 					vm_out = vm_in
+					vm_out['id'] = hmac.new('', vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name'], hashlib.sha1).digest()
 					
 					# get cores
 					cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
@@ -109,15 +113,15 @@ if __name__ == "__main__":
 									vm_out['disks'].append({
 										'name':ntpath.split(disk['DiskImage'])[1].replace(' ', '-').split('.')[0],
 										'url':'%s://%s:%s%s%s' % (
-											'https' if conf.get('WEBSERVER', 'port') == '443' else 'http',
-											conf.get('WEBSERVER', 'host'),
-											conf.get('WEBSERVER', 'port'),
-											conf.get('WEBSERVER', 'base_uri'),
+											'https' if conf.get('FILESERVER', 'port') == '443' else 'http',
+											conf.get('FILESERVER', 'host'),
+											conf.get('FILESERVER', 'port'),
+											conf.get('FILESERVER', 'base_uri'),
 											ntpath.split(disk['DiskImage'])[1].replace(' ', '-')
 											)
 										})
 									print('Copying drive %s' % (disk['DiskImage']))
-									result, ok = copy_vhd_to_webserver(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
+									result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
 									if ok:
 										print('Finished copy...')
 									else:
@@ -140,9 +144,19 @@ if __name__ == "__main__":
 
 					vms.append(vm_out)
 
+					### Update the running.conf file
+					conf.read("./running.conf") # make sure we have everything from this file already
+					exported = json.loads(config.get('STATE', 'exported'))
+					exported.append(vm_out['id'])
+					conf.set('STATE', 'exported', json.dumps(exported))
+					conf.set('STATE', 'vms', json.dumps(vms))
+					with open('running.conf', 'wb') as f:
+						conf.write(f) # update the file to include the changes we have made
+
 	print "\nBuilt the following details"
 	pprint.pprint(vms)
 
+	print('\nDOING VM IMPORT\n---------------\n')
 	# go through the VMs and import them into CS
 	for i, vm in enumerate(vms):
 		print('\nIMPORTING %s\n%s' % (vm['hyperv_vm_name'], '----------'+'-'*len(vm['hyperv_vm_name'])))

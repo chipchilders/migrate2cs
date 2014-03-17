@@ -16,11 +16,11 @@ conf.read("./settings.conf")
 
 # require 'endpoint', 'username' and 'password' to use this lib
 if not conf.has_option('HYPERV', 'endpoint'):
-    sys.exit("Config required in settings.conf: [HYPERV] -> endpoint")
+	sys.exit("Config required in settings.conf: [HYPERV] -> endpoint")
 if not conf.has_option('HYPERV', 'username'):
-    sys.exit("Config required in settings.conf: [HYPERV] -> username")
+	sys.exit("Config required in settings.conf: [HYPERV] -> username")
 if not conf.has_option('HYPERV', 'password'):
-    sys.exit("Config required in settings.conf: [HYPERV] -> password")
+	sys.exit("Config required in settings.conf: [HYPERV] -> password")
 
 class HyperV:
 	VM_RUNNING = 2
@@ -69,5 +69,5 @@ hyperv = HyperV(conf.get('HYPERV', 'endpoint'), conf.get('HYPERV', 'username'), 
 ### Update the running.conf file
 conf.read("./running.conf") # make sure we have everything from this file already
 with open('running.conf', 'wb') as f:
-    conf.write(f) # update the file to include any changes we have made
+	conf.write(f) # update the file to include any changes we have made
 
