@@ -6,7 +6,6 @@ from lib.hyperv import hyperv # the connection
 from lib.cloudstack import cs
 import json
 import hashlib
-import hmac
 import ntpath
 import os
 import pprint
@@ -69,7 +68,7 @@ if __name__ == "__main__":
 
 					vm_raw = objs[0]
 					vm_out = vm_in
-					vm_out['id'] = hmac.new('', vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name'], hashlib.sha1).digest()
+					vm_out['id'] = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
 					
 					# get cores
 					cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
