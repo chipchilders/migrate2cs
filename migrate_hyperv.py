@@ -191,7 +191,7 @@ if __name__ == "__main__":
 
 
 			# make sure we have a complete config before we start
-			if ('cs_zone' in vm and 'cs_domain' in vm and 'cs_account' in and 'cs_network' in vm and 'cs_service_offering' in vm):
+			if ('cs_zone' in vm and 'cs_domain' in vm and 'cs_account' in vm and 'cs_network' in vm and 'cs_service_offering' in vm):
 				# manage the disks
 				if 'disks' in vm and len(vm['disks']) > 0:
 					# register the first disk as a template since it is the root disk
