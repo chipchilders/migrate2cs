@@ -20,7 +20,8 @@ conf.set('HYPERV', 'pscp_exe', 'C:\pscp.exe')
 # read in config files if they exists
 conf.read(['./settings.conf', './running.conf'])
 
-conf.add_section('STATE') # STATE config section to maintain state of the running process
+if not conf.has_section('STATE')
+	conf.add_section('STATE') # STATE config section to maintain state of the running process
 if not conf.has_option('STATE', 'exported'):
 	conf.set('STATE', 'exported', '[]') # parsed with: json.loads(conf.get('STATE', 'exported'))
 if not conf.has_option('STATE', 'imported'):
@@ -29,6 +30,7 @@ if not conf.has_option('STATE', 'started'):
 	conf.set('STATE', 'started', '[]') # parsed with: json.loads(conf.get('STATE', 'started'))
 if not conf.has_option('STATE', 'vms'):
 	conf.set('STATE', 'vms', '[]') # parsed with: json.loads(conf.get('STATE', 'vms'))
+
 
 def copy_vhd_to_file_server(vhd_path, vhd_name):
 	return hyperv.powershell('%s -l %s -pw %s "%s" %s:%s/%s' % (
