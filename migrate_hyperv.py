@@ -62,16 +62,15 @@ if __name__ == "__main__":
 	if vm_input: # make sure there is data in the file
 		for vm_in in vm_input: # loop through the vms in the file
 			 # make sure the minimum fields were entered and they have not been processed already
-			if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in and
-				hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest() not in json.loads(conf.get('STATE', 'exported')):
-				
+			 vm_id = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
+			if ('hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in and vm_id not in json.loads(conf.get('STATE', 'exported'))):
 				objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 				if objs and ok: # make sure it found the specified VM
 					print('\nEXPORTING %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
 
 					vm_raw = objs[0]
 					vm_out = vm_in
-					vm_out['id'] = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
+					vm_out['id'] = vm_id
 					
 					# get cores
 					cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
