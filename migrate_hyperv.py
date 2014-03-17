@@ -219,7 +219,8 @@ if __name__ == "__main__":
 						'account':account
 					}))
 					if template:
-						print('Template created...')
+						print('Template %s created...' % (template['template'][0]['id']))
+						vm['template_id'] = template['template'][0]['id']
 					else:
 						print('ERROR: Check the "%s" log for details' % (conf.get('CLOUDSTACK', 'log_file')))
 
