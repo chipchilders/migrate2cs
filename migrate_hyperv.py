@@ -10,6 +10,7 @@ import ntpath
 import os
 import pprint
 import sys
+import time
 
 # setup the conf object and set default values...
 conf = ConfigParser()
@@ -267,40 +268,71 @@ if __name__ == "__main__":
 		for i, vm in enumerate(vms):
 			vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 			if vm_id not in json.loads(conf.get('STATE', 'started')):
-				started = False
-				print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-')))
-				# create a VM instance using the template
-				cmd = dict({
-					'command':'deployVirtualMachine',
-					'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
-					'templateid':vm['cs_template_id'],
-					'serviceofferingid':vm['cs_service_offering'],
-					'zoneid':vm['cs_zone'],
-					'domainid':vm['cs_domain'],
-					'account':vm['cs_account']
-				})
-				if vm['cs_zone_network'] == 'advanced':
-					cmd['networkids'] = vm['cs_network'],
-				launched_vm = cs.request(cmd)
-				if launched_vm:
-					#print('VM \'%s\' started...' % (template['template'][0]['id']))
-					#vm['cs_template_id'] = template['template'][0]['id']
-					started = True
-					print('... sleeping ...')
-					time.sleep(10)
+				# check if the template has finished downloading...
+				template = cs.request(dict({
+					'command':'listTemplates', 
+					'listall':'true', 
+					'templatefilter':'self', 
+					'id':vm['cs_template_id']
+				}))
+				if template and 'template' in template and len(template['template']) > 0:
+					if template['template'][0]['isready']: # template is ready
+						volumes_ready = True
+						if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0: # check if volumes are ready
+							for volume_id in vm['cs_volumes']:
+								volume = cs.request(dict({
+									'command':'listVolumes', 
+									'listall':'true', 
+									'id':volume_id
+								}))
+								if volume and 'volume' in volume and len(volume['volume']) > 0:
+									if volume['volume'][0]['state'] != 'Ready':
+										print('%s is waiting for volume \'%s\', current state: %s' % 
+											(vm['hyperv_vm_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
+										volumes_ready = False
+									else:
+										volumes_ready = volumes_ready and True # propogates False if any are False
+						if volumes_ready:
+							print('%s is ready to launch...' % (vm['hyperv_vm_name']))
 
-					# attach the data volumes to it if there are data volumes
-					#if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0:
-					#	attach_volume = cs.request(dict({
-					#	'command':'attachVolume',
+					else:
+						print('%s is waiting for template, current state: %s'% (vm['hyperv_vm_name'], template['template'][0]['status']))
+
+
+					#started = False
+					#print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-')))
+					## create a VM instance using the template
+					#cmd = dict({
+					#	'command':'deployVirtualMachine',
 					#	'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
 					#	'templateid':vm['cs_template_id'],
 					#	'serviceofferingid':vm['cs_service_offering'],
-					#	'networkids':vm['cs_network'],
 					#	'zoneid':vm['cs_zone'],
 					#	'domainid':vm['cs_domain'],
 					#	'account':vm['cs_account']
-					#}))
+					#})
+					#if vm['cs_zone_network'] == 'advanced':
+					#	cmd['networkids'] = vm['cs_network'],
+					#launched_vm = cs.request(cmd)
+					#if launched_vm:
+					#	#print('VM \'%s\' started...' % (template['template'][0]['id']))
+					#	#vm['cs_template_id'] = template['template'][0]['id']
+					#	started = True
+
+						# attach the data volumes to it if there are data volumes
+						#if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0:
+						#	attach_volume = cs.request(dict({
+						#	'command':'attachVolume',
+						#	'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
+						#	'templateid':vm['cs_template_id'],
+						#	'serviceofferingid':vm['cs_service_offering'],
+						#	'networkids':vm['cs_network'],
+						#	'zoneid':vm['cs_zone'],
+						#	'domainid':vm['cs_domain'],
+						#	'account':vm['cs_account']
+						#}))
+		print('\n... sleeping ...\n')
+		time.sleep(10)
 
 
 	### clean up the running.conf file...

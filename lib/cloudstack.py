@@ -67,6 +67,7 @@ class CloudStack(object):
 		
 	def request(self, params):
 		"""Builds a query from params and return a json object of the result or None"""
+		self.errors = [] # reset errors so it only prints with its associated call...
 		if self.api_key and self.secret_key:
 			# add the default and dynamic params
 			params['response'] = 'json'
