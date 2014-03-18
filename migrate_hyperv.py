@@ -287,7 +287,8 @@ if __name__ == "__main__":
 									'id':volume_id
 								}))
 								if volume and 'volume' in volume and len(volume['volume']) > 0:
-									if volume['volume'][0]['state'] != 'Uploaded' or volume['volume'][0]['state'] != 'Ready':
+									# check the state of the volume
+									if volume['volume'][0]['state'] != 'Uploaded' and volume['volume'][0]['state'] != 'Ready':
 										print('%s: %s is waiting for volume \'%s\', current state: %s' % 
 											(poll, vm['hyperv_vm_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
 										volumes_ready = False
