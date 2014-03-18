@@ -59,7 +59,7 @@ if __name__ == "__main__":
 				print sys.exc_info()
 				sys.exit("Error in the formatting of '%s'" % (conf.get('HYPERV', 'migration_input_file')))
 
-	print('\n---------------------\n- RUNNING VM EXPORT -\n---------------------')
+	print('\n-----------------------\n-- RUNNING VM EXPORT --\n-----------------------')
 	# collect data about the VMs from HyperV and populate a list of VMs
 
 	# initialize the 'vms' variable from the existing config...
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 	print "\nBuilt the following details"
 	pprint.pprint(vms)
 
-	print('\n\n---------------------\n- RUNNING VM IMPORT -\n---------------------')
+	print('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
 	# go through the VMs and import them into CS
 	for i, vm in enumerate(vms):
 		vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
@@ -262,8 +262,9 @@ if __name__ == "__main__":
 					conf.write(f) # update the file to include the changes we have made
 
 
-	print('\n\n-------------------------\n- STARTING IMPORTED VMS -\n-------------------------')
+	print('\n\n---------------------------\n-- STARTING IMPORTED VMS --\n---------------------------')
 	# go through the imported VMs and start them and attach their volumes if they have any
+	poll = 1
 	while len(json.loads(conf.get('STATE', 'started'))) != len(json.loads(conf.get('STATE', 'imported'))):
 		for i, vm in enumerate(vms):
 			vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
@@ -286,52 +287,57 @@ if __name__ == "__main__":
 									'id':volume_id
 								}))
 								if volume and 'volume' in volume and len(volume['volume']) > 0:
-									if volume['volume'][0]['state'] != 'Ready':
-										print('%s is waiting for volume \'%s\', current state: %s' % 
-											(vm['hyperv_vm_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
+									if volume['volume'][0]['state'] != 'Uploaded' or volume['volume'][0]['state'] != 'Ready':
+										print('%s: %s is waiting for volume \'%s\', current state: %s' % 
+											(poll, vm['hyperv_vm_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
 										volumes_ready = False
 									else:
 										volumes_ready = volumes_ready and True # propogates False if any are False
 						if volumes_ready:
-							print('%s is ready to launch...' % (vm['hyperv_vm_name']))
+							print('%s: %s is ready to launch...' % (poll, vm['hyperv_vm_name']))
+							print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-')))
+							# create a VM instance using the template
+							cmd = dict({
+								'command':'deployVirtualMachine',
+								'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
+								'templateid':vm['cs_template_id'],
+								'serviceofferingid':vm['cs_service_offering'],
+								'zoneid':vm['cs_zone'],
+								'domainid':vm['cs_domain'],
+								'account':vm['cs_account']
+							})
+							if vm['cs_zone_network'] == 'advanced':
+								cmd['networkids'] = vm['cs_network'],
+							cs_vm = cs.request(cmd)
+							if cs_vm:
+								#print('VM \'%s\' started...' % (template['template'][0]['id']))
+								#vm['cs_template_id'] = template['template'][0]['id']
+								### Update the running.conf file
+								conf.read("./running.conf") # make sure we have everything from this file already
+								started = json.loads(conf.get('STATE', 'started'))
+								started.append(vm['id'])
+								conf.set('STATE', 'started', json.dumps(started))
+								conf.set('STATE', 'vms', json.dumps(vms))
+								with open('running.conf', 'wb') as f:
+									conf.write(f) # update the file to include the changes we have made
+
+								# attach the data volumes to it if there are data volumes
+								#if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0:
+								#	attach_volume = cs.request(dict({
+								#	'command':'attachVolume',
+								#	'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
+								#	'templateid':vm['cs_template_id'],
+								#	'serviceofferingid':vm['cs_service_offering'],
+								#	'networkids':vm['cs_network'],
+								#	'zoneid':vm['cs_zone'],
+								#	'domainid':vm['cs_domain'],
+								#	'account':vm['cs_account']
+								#}))
 
 					else:
-						print('%s is waiting for template, current state: %s'% (vm['hyperv_vm_name'], template['template'][0]['status']))
-
-
-					#started = False
-					#print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-')))
-					## create a VM instance using the template
-					#cmd = dict({
-					#	'command':'deployVirtualMachine',
-					#	'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
-					#	'templateid':vm['cs_template_id'],
-					#	'serviceofferingid':vm['cs_service_offering'],
-					#	'zoneid':vm['cs_zone'],
-					#	'domainid':vm['cs_domain'],
-					#	'account':vm['cs_account']
-					#})
-					#if vm['cs_zone_network'] == 'advanced':
-					#	cmd['networkids'] = vm['cs_network'],
-					#launched_vm = cs.request(cmd)
-					#if launched_vm:
-					#	#print('VM \'%s\' started...' % (template['template'][0]['id']))
-					#	#vm['cs_template_id'] = template['template'][0]['id']
-					#	started = True
-
-						# attach the data volumes to it if there are data volumes
-						#if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0:
-						#	attach_volume = cs.request(dict({
-						#	'command':'attachVolume',
-						#	'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
-						#	'templateid':vm['cs_template_id'],
-						#	'serviceofferingid':vm['cs_service_offering'],
-						#	'networkids':vm['cs_network'],
-						#	'zoneid':vm['cs_zone'],
-						#	'domainid':vm['cs_domain'],
-						#	'account':vm['cs_account']
-						#}))
-		print('\n... sleeping ...\n')
+						print('%s: %s is waiting for template, current state: %s'% (poll, vm['hyperv_vm_name'], template['template'][0]['status']))
+		print('... sleeping ...')
+		poll = poll + 1
 		time.sleep(10)
 
 
