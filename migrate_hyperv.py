@@ -265,7 +265,8 @@ if __name__ == "__main__":
 	print('\n\n---------------------------\n-- STARTING IMPORTED VMS --\n---------------------------')
 	# go through the imported VMs and start them and attach their volumes if they have any
 	poll = 1
-	while len(json.loads(conf.get('STATE', 'started'))) != len(json.loads(conf.get('STATE', 'imported'))):
+	has_error = False
+	while len(json.loads(conf.get('STATE', 'started'))) != len(json.loads(conf.get('STATE', 'imported'))) and not has_error:
 		for i, vm in enumerate(vms):
 			vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 			if vm_id not in json.loads(conf.get('STATE', 'started')):
@@ -294,6 +295,7 @@ if __name__ == "__main__":
 										volumes_ready = False
 									else:
 										volumes_ready = volumes_ready and True # propogates False if any are False
+						# everything should be ready for this VM to be started, go ahead...
 						if volumes_ready:
 							print('%s: %s is ready to launch...' % (poll, vm['hyperv_vm_name']))
 							print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-')))
@@ -307,10 +309,10 @@ if __name__ == "__main__":
 								'domainid':vm['cs_domain'],
 								'account':vm['cs_account']
 							})
-							if vm['cs_zone_network'] == 'advanced':
-								cmd['networkids'] = vm['cs_network'],
-							cs_vm = cs.request(cmd)
-							if cs_vm:
+							if vm['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
+								cmd['networkids'] = vm['cs_network']
+							cs_vm = cs.request(cmd) # launch the VM
+							if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
 								#print('VM \'%s\' started...' % (template['template'][0]['id']))
 								#vm['cs_template_id'] = template['template'][0]['id']
 								### Update the running.conf file
@@ -334,6 +336,13 @@ if __name__ == "__main__":
 								#	'domainid':vm['cs_domain'],
 								#	'account':vm['cs_account']
 								#}))
+							elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
+								print('%s failed to start!  ERROR: %s' % (vm['hyperv_vm_name'], cs_vm['jobresult']['errortext']))
+								has_error = True
+							else:
+								print('%s did not Start or Error correctly...' % (vm['hyperv_vm_name']))
+								has_error = True
+								
 
 					else:
 						print('%s: %s is waiting for template, current state: %s'% (poll, vm['hyperv_vm_name'], template['template'][0]['status']))
@@ -344,4 +353,6 @@ if __name__ == "__main__":
 
 	### clean up the running.conf file...
 	#os.remove('./running.conf')
+
+	print('\n\nALL FINISHED!!!\n\n')
 
