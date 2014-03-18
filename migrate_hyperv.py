@@ -302,7 +302,7 @@ if __name__ == "__main__":
 							# create a VM instance using the template
 							cmd = dict({
 								'command':'deployVirtualMachine',
-								'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
+								'displayname':vm['hyperv_vm_name'].replace(' ', '-').replace('_', '-'),
 								'templateid':vm['cs_template_id'],
 								'serviceofferingid':vm['cs_service_offering'],
 								'zoneid':vm['cs_zone'],

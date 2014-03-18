@@ -1,3 +1,5 @@
+\pagebreak
+
 INSTALL
 =======
 
@@ -44,6 +46,7 @@ On Migration Machine
 	(no need to actually install anything, you can run the code inplace)
 
 
+\pagebreak
 
 HOWTO USE THE PACKAGE
 =====================
