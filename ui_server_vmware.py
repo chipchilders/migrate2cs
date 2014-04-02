@@ -44,16 +44,19 @@ def discover_src_vms():
 			conf.get('VMWARE', 'password')
 		)
 	except:
-		return vms
+		print("")
+		print("UNABLE TO CONNECT TO VMWARE...")
+		print("")
+		bottle.abort(500, "Unable to connect to VMware...")
 	src_vm_list = vmware.get_registered_vms()
 	for src_vm in src_vm_list:
 		vm = vmware.get_vm_by_path(src_vm)
 		properties = vm.get_properties()
-		print("Name: %s" % properties.name)
-		print("Path: %s" % properties.path)
-		print("Memory: %s" % properties.memory_mb)
-		print("CPU: %s" % properties.num_cpu)
-		print("Type: %s" % properties.guest_full_name)
+		print("Name: %s" % properties['name'])
+		print("Path: %s" % properties['path'])
+		print("Memory: %s" % properties['memory_mb'])
+		print("CPU: %s" % properties['num_cpu'])
+		print("Type: %s" % properties['guest_full_name'])
 		print("")
 
 
