@@ -64,7 +64,7 @@ def discover_src_vms():
 			'src_disks':[]
 		}
 		for disk in properties['disks']:
-			vm['disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
+			vm['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
 
 		#pprint.pprint(properties)
 		print("Name: %s" % vm['src_name'])
