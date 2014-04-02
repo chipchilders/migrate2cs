@@ -77,8 +77,8 @@ def discover_src_vms():
 		for disk in vm['src_disks']:
 			print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
 		print("")
-
-	vms[vm_id] = vm
+		vms[vm_id] = vm
+		
 	### Update the running.conf file
 	conf.set('STATE', 'vms', json.dumps(vms))
 	with open('running.conf', 'wb') as f:
