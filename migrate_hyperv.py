@@ -15,7 +15,7 @@ import time
 # setup the conf object and set default values...
 conf = ConfigParser()
 conf.add_section('HYPERV')
-conf.set('HYPERV', 'migration_input_file', './migrate_hyperv_input.json')
+conf.set('HYPERV', 'migration_input_file', './input/migrate_hyperv_input.json')
 conf.set('HYPERV', 'pscp_exe', 'C:\pscp.exe')
 
 # read in config files if they exists
@@ -33,6 +33,7 @@ if not conf.has_option('STATE', 'vms'):
 	conf.set('STATE', 'vms', '[]') # parsed with: json.loads(conf.get('STATE', 'vms'))
 
 
+# copy vhd files to the file server
 def copy_vhd_to_file_server(vhd_path, vhd_name):
 	return hyperv.powershell('%s -l %s -pw %s "%s" %s:%s/%s' % (
 		conf.get('HYPERV', 'pscp_exe'),
@@ -45,7 +46,8 @@ def copy_vhd_to_file_server(vhd_path, vhd_name):
 	))
 
 
-if __name__ == "__main__":
+# run the actual migration
+def do_migration():
 	# comment out the following line to keep a history of the requests over multiple runs of this file.
 	open(conf.get('HYPERV', 'log_file'), 'w').close() # cleans the powershell requests log before execution so it only includes this run.
 	open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # cleans the cloudstack requests log before execution so it only includes this run.
@@ -164,7 +166,7 @@ if __name__ == "__main__":
 						with open('running.conf', 'wb') as f:
 							conf.write(f) # update the file to include the changes we have made
 
-	print "\nBuilt the following details"
+	print "\nCurrent VM Objects:"
 	pprint.pprint(vms)
 
 	print('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
@@ -262,7 +264,7 @@ if __name__ == "__main__":
 					conf.write(f) # update the file to include the changes we have made
 
 
-	print('\n\n---------------------------\n-- STARTING IMPORTED VMS --\n---------------------------')
+	print('\n\n----------------------------\n-- LAUNCHING IMPORTED VMS --\n----------------------------')
 	# go through the imported VMs and start them and attach their volumes if they have any
 	poll = 1
 	has_error = False
@@ -350,9 +352,11 @@ if __name__ == "__main__":
 		poll = poll + 1
 		time.sleep(10)
 
-
 	### clean up the running.conf file...
 	#os.remove('./running.conf')
 
+
+if __name__ == "__main__":
+	do_migration()
 	print('\n\nALL FINISHED!!!\n\n')
 

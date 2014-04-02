@@ -32,7 +32,7 @@ conf.add_section('CLOUDSTACK')
 conf.set('CLOUDSTACK', 'protocol', 'http')
 conf.set('CLOUDSTACK', 'host', '127.0.0.1:8080')
 conf.set('CLOUDSTACK', 'uri', '/client/api')
-conf.set('CLOUDSTACK', 'async_poll_interval', '5')
+conf.set('CLOUDSTACK', 'async_poll_interval', '10')
 conf.set('CLOUDSTACK', 'logging', 'True')
 conf.set('CLOUDSTACK', 'log_file', './logs/cs_request.log')
 
@@ -65,7 +65,7 @@ class CloudStack(object):
 		self.logging = logging
 		self.async_poll_interval = async_poll_interval # seconds
 		
-	def request(self, params):
+	def request(self, params, poll=1):
 		"""Builds a query from params and return a json object of the result or None"""
 		self.errors = [] # reset errors so it only prints with its associated call...
 		if self.api_key and self.secret_key:
@@ -117,9 +117,9 @@ class CloudStack(object):
 			# if the request was an async call, then poll for the result...
 			if output and 'jobid' in output.keys() and \
 					('jobstatus' not in output.keys() or ('jobstatus' in output.keys() and output['jobstatus'] == 0)):
-				print 'polling...'
+				print('%s: polling...' % (poll))
 				time.sleep(self.async_poll_interval)
-				output = self.request(dict({'command':'queryAsyncJobResult', 'jobId':output['jobid']}))
+				output = self.request(dict({'command':'queryAsyncJobResult', 'jobId':output['jobid']}), poll+1)
 
 			return output
 		else:
