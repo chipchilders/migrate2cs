@@ -37,15 +37,24 @@ def discover_src_vms():
 		vms = {}
 
 	vmware = VIServer()
-	vmware.connect(
-		conf.get('VMWARE', 'endpoint'),
-		conf.get('VMWARE', 'username'),
-		conf.get('VMWARE', 'password')
-	)
+	try:
+		vmware.connect(
+			conf.get('VMWARE', 'endpoint'),
+			conf.get('VMWARE', 'username'),
+			conf.get('VMWARE', 'password')
+		)
+	except:
+		return vms
 	src_vm_list = vmware.get_registered_vms()
 	for src_vm in src_vm_list:
 		vm = vmware.get_vm_by_path(src_vm)
-		pprint.pprint(vm.get_properties())
+		properties = vm.get_properties()
+		print("Name: %s" % properties.name)
+		print("Path: %s" % properties.path)
+		print("Memory: %s" % properties.memory_mb)
+		print("CPU: %s" % properties.num_cpu)
+		print("Type: %s" % properties.guest_full_name)
+		print("")
 
 
 
