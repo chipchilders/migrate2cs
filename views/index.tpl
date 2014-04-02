@@ -10,6 +10,7 @@
     <script type="text/javascript" src="/static/views/plugins/jquery-ui-1.10.4.custom/js/jquery-ui-1.10.4.custom.min.js"></script>
     <script type="text/javascript">
       var cs_objs = {{!cs_objs}};
+      var vms = {{!vms}};
 
       $(function() {
         $('#accordion').accordion({

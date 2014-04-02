@@ -8,6 +8,7 @@
 ##
 ## Author: Will Stevens <wstevens@cloudops.com>
 
+import hashlib
 import json
 import pprint
 from pysphere import VIServer
@@ -49,19 +50,39 @@ def discover_src_vms():
 		print("")
 		bottle.abort(500, "Unable to connect to VMware...")
 	src_vm_list = vmware.get_registered_vms()
-	for src_vm in src_vm_list:
-		vm = vmware.get_vm_by_path(src_vm)
-		properties = vm.get_properties()
-		#pprint.pprint(properties)
-		print("Name: %s" % properties['name'])
-		print("Path: %s" % properties['path'])
-		print("Memory: %s" % properties['memory_mb'])
-		print("CPU: %s" % properties['num_cpu'])
-		print("Type: %s" % properties['guest_full_name'])
-		print("Disks:")
+	for vm_path in src_vm_list:
+		src_vm = vmware.get_vm_by_path(vm_path)
+		properties = src_vm.get_properties()
+		vm_id = hashlib.sha1(properties['name']+"|"+properties['path']).hexdigest()
+		vm = {
+			'id':vm_id,
+			'src_name':properties['name'], 
+			'src_path':properties['path'],
+			'src_memory':properties['memory_mb'],
+			'src_cpus':properties['num_cpu'],
+			'src_type':properties['guest_full_name'],
+			'src_disks':[]
+		}
 		for disk in properties['disks']:
-			print(" - %s : %s (%s)" % (disk['label'], disk['descriptor'], disk['device']['type']))
+			vm['disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
+
+		#pprint.pprint(properties)
+		print("Name: %s" % vm['src_name'])
+		print("Path: %s" % vm['src_path'])
+		print("Memory: %s" % vm['src_memory'])
+		print("CPU: %s" % vm['src_cpus'])
+		print("Type: %s" % vm['src_type'])
+		print("Disks:")
+		for disk in vm['src_disks']:
+			print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
 		print("")
+
+		vms[vm_id] = vm
+		### Update the running.conf file
+		conf.set('STATE', 'vms', json.dumps(vms))
+		with open('running.conf', 'wb') as f:
+			conf.write(f) # update the file to include the changes we have made
+		return vms
 
 
 
@@ -69,11 +90,10 @@ def discover_src_vms():
 @bottle.route('/')
 @bottle.view('index')
 def index():
-	output = {}
-	output['cs_objs'] = json.dumps(cs_discover_accounts())
-	discover_src_vms()
-	#pprint.pprint(output['cs_objs'])
-	return dict(output)
+	variables = {}
+	variables['cs_objs'] = json.dumps(cs_discover_accounts())
+	variables['vms'] = json.dumps(discover_src_vms())
+	return dict(variables)
 
 
 # start the server
