@@ -52,11 +52,15 @@ def discover_src_vms():
 	for src_vm in src_vm_list:
 		vm = vmware.get_vm_by_path(src_vm)
 		properties = vm.get_properties()
+		pprint.pprint(properties)
 		print("Name: %s" % properties['name'])
 		print("Path: %s" % properties['path'])
 		print("Memory: %s" % properties['memory_mb'])
 		print("CPU: %s" % properties['num_cpu'])
 		print("Type: %s" % properties['guest_full_name'])
+		print("Disks:")
+		for disk in properties['disks']:
+			print(" - %s" % (disk['label']))
 		print("")
 
 
