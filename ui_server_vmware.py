@@ -37,6 +37,11 @@ def discover_src_vms():
 	else:
 		vms = {}
 
+	if conf.has_option('STATE', 'vm_order'):
+		order = json.loads(conf.get('STATE', 'vm_order'))
+	else:
+		order = []
+
 	vmware = VIServer()
 	try:
 		vmware.connect(
@@ -54,6 +59,8 @@ def discover_src_vms():
 		src_vm = vmware.get_vm_by_path(vm_path)
 		properties = src_vm.get_properties()
 		vm_id = hashlib.sha1(properties['name']+"|"+properties['path']).hexdigest()
+		if vm_id not in order:
+			order.append(vm_id)
 		vm = {
 			'id':vm_id,
 			'src_name':properties['name'], 
@@ -78,12 +85,13 @@ def discover_src_vms():
 			print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
 		print("")
 		vms[vm_id] = vm
-		
+
 	### Update the running.conf file
 	conf.set('STATE', 'vms', json.dumps(vms))
+	conf.set('STATE', 'vm_order', json.dumps(order))
 	with open('running.conf', 'wb') as f:
 		conf.write(f) # update the file to include the changes we have made
-	return vms
+	return vms, order
 
 
 
@@ -93,7 +101,9 @@ def discover_src_vms():
 def index():
 	variables = {}
 	variables['cs_objs'] = json.dumps(cs_discover_accounts())
-	variables['vms'] = json.dumps(discover_src_vms())
+	vms, order = discover_src_vms()
+	variables['vms'] = json.dumps(vms)
+	variables['vm_order'] = json.dumps(order)
 	return dict(variables)
 
 

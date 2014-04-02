@@ -11,6 +11,7 @@
     <script type="text/javascript">
       var cs_objs = {{!cs_objs}};
       var vms = {{!vms}};
+      var vm_order = {{!vm_order}};
 
       $(function() {
         $('#accordion').accordion({
