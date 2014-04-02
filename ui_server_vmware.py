@@ -61,7 +61,8 @@ def discover_src_vms():
 			'src_memory':properties['memory_mb'],
 			'src_cpus':properties['num_cpu'],
 			'src_type':properties['guest_full_name'],
-			'src_disks':[]
+			'src_disks':[],
+			'src_status':src_vm.get_status(basic_status=True)
 		}
 		for disk in properties['disks']:
 			vm['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
@@ -77,12 +78,12 @@ def discover_src_vms():
 			print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
 		print("")
 
-		vms[vm_id] = vm
-		### Update the running.conf file
-		conf.set('STATE', 'vms', json.dumps(vms))
-		with open('running.conf', 'wb') as f:
-			conf.write(f) # update the file to include the changes we have made
-		return vms
+	vms[vm_id] = vm
+	### Update the running.conf file
+	conf.set('STATE', 'vms', json.dumps(vms))
+	with open('running.conf', 'wb') as f:
+		conf.write(f) # update the file to include the changes we have made
+	return vms
 
 
 
