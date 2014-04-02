@@ -31,7 +31,7 @@ NOTE: if you change the location of `pscp.exe`, you will need to reflect the cha
 On Migration Machine
 --------------------
 ### Install EPEL
-```bash
+``` bash
 $ cd /tmp
 $ wget http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm
 $ yum install epel-release-6-8.noarch.rpm
@@ -39,19 +39,19 @@ $ yum install epel-release-6-8.noarch.rpm
 
 
 ### Install PIP and Git
-```bash
+``` bash
 $ yum install python-pip git
 ```
 
 
 ### Install pywinrm
-```bash
+``` bash
 $ pip install http://github.com/diyan/pywinrm/archive/master.zip 
 ```
 
 
 ### Get the source code
-```bash
+``` bash
 $ git clone git@bitbucket.org:cloudops_code/migrate2cs.git
 ```
 (no need to actually install anything, you can run the code inplace)
@@ -66,7 +66,7 @@ Create 	`./migrate_hyperv_input.json`
 This file is used to specify which VMs from HyperV to export and where they should be imported into CloudStack.  
 
 The file is in the following format.
-```json
+``` json
 [
 	{
 		"hyperv_vm_name":"Windows_Server_2003",
@@ -130,7 +130,7 @@ All of the fields that are labeled as OPTIONAL are showing the default values th
 
 **NOTE:** All of the REQUIRED fields are filled with placeholder values so the format of the variables can be understood
 
-```ini
+``` ini
 ### NOTES: both '#' and ';' are used for comments.  only ';' can be used for inline comments.
 
 
