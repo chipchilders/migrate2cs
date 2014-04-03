@@ -74,16 +74,16 @@ def discover_src_vms():
 		for disk in properties['disks']:
 			vm['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
 
-		#pprint.pprint(properties)
-		print("Name: %s" % vm['src_name'])
-		print("Path: %s" % vm['src_path'])
-		print("Memory: %s" % vm['src_memory'])
-		print("CPU: %s" % vm['src_cpus'])
-		print("Type: %s" % vm['src_type'])
-		print("Disks:")
-		for disk in vm['src_disks']:
-			print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
-		print("")
+		##pprint.pprint(properties)
+		#print("Name: %s" % vm['src_name'])
+		#print("Path: %s" % vm['src_path'])
+		#print("Memory: %s" % vm['src_memory'])
+		#print("CPU: %s" % vm['src_cpus'])
+		#print("Type: %s" % vm['src_type'])
+		#print("Disks:")
+		#for disk in vm['src_disks']:
+		#	print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
+		#print("")
 		vms[vm_id] = vm
 
 	### Update the running.conf file

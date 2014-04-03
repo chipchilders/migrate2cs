@@ -91,13 +91,13 @@
           $(vm_el).find('.vm_select .checkbox_label').attr('for', vm_id);
           
           var details = '';
-          details += '<div class="detail"><span class="label">Path</span> <span class="value">'+vm_obj['src_path']+'</span></div>';
+          //details += '<div class="detail"><span class="label">Path</span> <span class="value">'+vm_obj['src_path']+'</span></div>';
           details += '<div class="detail"><span class="label">Type</span> <span class="value">'+vm_obj['src_type']+'</span></div>';
           details += '<div class="detail"><span class="label">Memory</span> <span class="value">'+vm_obj['src_memory']+'Mb</span></div>';
           details += '<div class="detail"><span class="label">CPUs</span> <span class="value">'+vm_obj['src_cpus']+'</span></div>';
-          details += '<div class="detail"><span class="label">Root Disk</span> <span class="value">'+vm_obj['src_disks'][0]['label']+' : '+vm_obj['src_disks'][0]['path']+'</span></div>';
+          details += '<div class="detail"><span class="label">Root Disk</span> <span class="value">'+vm_obj['src_disks'][0]['label']+'</span></div>';
           for (var d=1; d<vm_obj['src_disks'].length; d++) {
-            details += '<div class="detail"><span class="label">Disk</span> <span class="value">'+vm_obj['src_disks'][d]['label']+' : '+vm_obj['src_disks'][d]['path']+'</span></div>';
+            details += '<div class="detail"><span class="label">Disk</span> <span class="value">'+vm_obj['src_disks'][d]['label']+'</span></div>';
           }
           $(vm_el).find('.vm_content .left').html(details);
           $('.vm_list').append(vm_el);
