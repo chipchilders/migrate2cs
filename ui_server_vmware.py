@@ -54,37 +54,40 @@ def discover_src_vms():
 		print("UNABLE TO CONNECT TO VMWARE...")
 		print("")
 		bottle.abort(500, "Unable to connect to VMware...")
-	src_vm_list = vmware.get_registered_vms()
-	for vm_path in src_vm_list:
-		src_vm = vmware.get_vm_by_path(vm_path)
-		properties = src_vm.get_properties()
-		vm_id = hashlib.sha1(properties['name']+"|"+properties['path']).hexdigest()
-		if vm_id not in order:
-			order.append(vm_id)
-		vm = {
-			'id':vm_id,
-			'src_name':properties['name'], 
-			'src_path':properties['path'],
-			'src_memory':properties['memory_mb'],
-			'src_cpus':properties['num_cpu'],
-			'src_type':properties['guest_full_name'],
-			'src_disks':[],
-			'src_status':src_vm.get_status(basic_status=True)
-		}
-		for disk in properties['disks']:
-			vm['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
+	datacenters = vmware.get_datacenters()
+	for dc_key, dc_name in datacenters.iteritems():
+		src_vm_list = vmware.get_registered_vms(datacenter=dc_name)
+		for vm_path in src_vm_list:
+			src_vm = vmware.get_vm_by_path(vm_path)
+			properties = src_vm.get_properties()
+			vm_id = hashlib.sha1(properties['name']+"|"+properties['path']).hexdigest()
+			if vm_id not in order:
+				order.append(vm_id)
+			vm = {
+				'id':vm_id,
+				'src_dc':dc_name,
+				'src_name':properties['name'], 
+				'src_path':properties['path'],
+				'src_memory':properties['memory_mb'],
+				'src_cpus':properties['num_cpu'],
+				'src_type':properties['guest_full_name'],
+				'src_disks':[],
+				'src_status':src_vm.get_status(basic_status=True)
+			}
+			for disk in properties['disks']:
+				vm['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
 
-		##pprint.pprint(properties)
-		#print("Name: %s" % vm['src_name'])
-		#print("Path: %s" % vm['src_path'])
-		#print("Memory: %s" % vm['src_memory'])
-		#print("CPU: %s" % vm['src_cpus'])
-		#print("Type: %s" % vm['src_type'])
-		#print("Disks:")
-		#for disk in vm['src_disks']:
-		#	print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
-		#print("")
-		vms[vm_id] = vm
+			##pprint.pprint(properties)
+			#print("Name: %s" % vm['src_name'])
+			#print("Path: %s" % vm['src_path'])
+			#print("Memory: %s" % vm['src_memory'])
+			#print("CPU: %s" % vm['src_cpus'])
+			#print("Type: %s" % vm['src_type'])
+			#print("Disks:")
+			#for disk in vm['src_disks']:
+			#	print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
+			#print("")
+			vms[vm_id] = vm
 
 	### Update the running.conf file
 	conf.set('STATE', 'vms', json.dumps(vms))
