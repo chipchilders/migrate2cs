@@ -77,6 +77,11 @@ def discover_src_vms():
 			for disk in properties['disks']:
 				vm['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
 
+			if '64-bit' in vm['src_type'].lower():
+				vm['src_os_arch'] = 64
+			elif '32-bit' in vm['src_type'].lower():
+				vm['src_os_arch'] = 32
+
 			##pprint.pprint(properties)
 			#print("Name: %s" % vm['src_name'])
 			#print("Path: %s" % vm['src_path'])
