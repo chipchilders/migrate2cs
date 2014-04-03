@@ -74,6 +74,9 @@ label {
 .hidden {
 	display:none;
 }
+#vm_tpl {
+	display:none;
+}
 
 .section {
 	position:relative;

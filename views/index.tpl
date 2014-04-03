@@ -303,7 +303,7 @@
           </div>
           <div class="vm_list">
             
-            <div id="vm_tpl" class="vm" style="display:none;">
+            <div id="vm_tpl" class="vm">
               <h4></h4>
               <span class="vm_select">
                 <span class="vm_select_label">Select</span>
