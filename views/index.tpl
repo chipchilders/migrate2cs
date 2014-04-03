@@ -27,6 +27,7 @@
         //  $('#accordion').accordion('option', 'active', 0);
         //});
 
+        // expand and collapse functionality
         $('.action_collapse').on('click', function() {
           $('.vm_list .vm_content').hide();
         });
@@ -41,6 +42,7 @@
           }
         });
 
+        // select all and select none functionality
         $('.action_select').on('click', function() {
           $('.vm_list .vm_select input').prop('checked', true);
         });
@@ -48,6 +50,8 @@
           $('.vm_list .vm_select input').prop('checked', false);
         });
 
+        // build the VM list
+        build_vm_list();
 
         // accounts
         option_html = '<option value="">Select</option>';
@@ -59,47 +63,46 @@
           $($('#dst_account').children()[1]).prop('selected', true);
         }
 
-        // handle changes to the select boxes (namely zone -> network)
+        // handle changes to the account select box
         $('#dst_account').on('change', get_account_resources);
         $('#dst_account').trigger('change');
 
         // handle when a config is applied to a selection of VMs
         $('.action_apply').on('click', apply_config_to_vms);
 
-
         // check that the selected VMs are ready and move on to the migration
-        $('.migrate').on('click', function() {
-          var ready = true;
-          var vms = {};
-          $('.vm_select .checkbox:checked').each(function() {
-            var vm = $(this).closest('.vm');
-            if ($(vm).find('.dst_account_id').text() != '' && $(vm).find('.dst_zone_id').text() !='' &&
-                $(vm).find('.dst_compute_offering_id').text() != '') {
-              var vm_obj = {};
-              var cs_obj = cs_objs['accounts'][$(vm).find('.dst_account_id').text()];
-              vm_obj['cs_account'] = cs_obj['account'];
-              vm_obj['cs_domain'] = cs_obj['domain'];
-              vm_obj['cs_zone'] = $(vm).find('.dst_zone_id').text();
-              vm_obj['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
-              if ($(vm).find('.dst_network_id').text() != '') {
-                vm_obj['cs_network'] = $(vm).find('.dst_network_id').text();
-              }
-              vms[$(vm).data('id')] = vm_obj;
-            } else {
-              ready = false;
-              alert($(vm).find('h4').text()+" is missing required fields for migration.");
-            }
-          });
-          console.log(vms);
-          if (ready) {
-            $('#accordion').accordion('option', 'active', 1);
-          }
-        });
+        $('.migrate').on('click', migrate_selected_vms);
 
       }); // end onload
 
       
       // FUNCTIONS //
+
+      // build the VM list
+      function build_vm_list() {
+        for (var i=0; i<vm_order.length; i++) {
+          var vm_id = vm_order[i];
+          var vm_obj = vms[vm_id];
+          var vm_el = $('#vm_tpl').clone(true);
+          $(vm_el).removeAttr('id'); // get rid of the 'vm_tpl' id
+          $(vm_el).data('id', vm_id);
+          $(vm_el).find('h4').text(vm_obj['src_name']);
+          $(vm_el).find('.vm_select .checkbox').attr('id', vm_id);
+          $(vm_el).find('.vm_select .checkbox_label').attr('for', vm_id);
+          
+          var details = '';
+          details += '<div class="detail"><span class="label">Path</span> <span class="value">'+vm_obj['src_path']+'</span></div>';
+          details += '<div class="detail"><span class="label">Type</span> <span class="value">'+vm_obj['src_type']+'</span></div>';
+          details += '<div class="detail"><span class="label">Memory</span> <span class="value">'+vm_obj['src_memory']+'Mb</span></div>';
+          details += '<div class="detail"><span class="label">CPUs</span> <span class="value">'+vm_obj['src_cpus']+'</span></div>';
+          details += '<div class="detail"><span class="label">Root Disk</span> <span class="value">'+vm_obj['disks'][0]['label']+' : '+vm_obj['disks'][0]['path']+'</span></div>';
+          for (var d=1; d<vm_obj['disks'].length; d++) {
+            details += '<div class="detail"><span class="label">Disk</span> <span class="value">'+vm_obj['disks'][d]['label']+' : '+vm_obj['disks'][d]['path']+'</span></div>';
+          }
+          $(vm_el).find('.vm_content .left').html(details);
+          $('.vm_list').append(vm_el);
+        }
+      }
 
       // onchange of the account, go and fetch the resources that account has access to
       function get_account_resources(event) {
@@ -215,6 +218,34 @@
           alert('Please select a configuration for all the requred fields.');
         }
       }
+
+      // validate and migrate selected VMs
+      function migrate_selected_vms() {
+        var ready = true;
+        var vms = {};
+        $('.vm_select .checkbox:checked').each(function() {
+          var vm = $(this).closest('.vm');
+          if ($(vm).find('.dst_account_id').text() != '' && $(vm).find('.dst_zone_id').text() !='' &&
+              $(vm).find('.dst_compute_offering_id').text() != '') {
+            var vm_obj = {};
+            var cs_obj = cs_objs['accounts'][$(vm).find('.dst_account_id').text()];
+            vm_obj['cs_account'] = cs_obj['account'];
+            vm_obj['cs_domain'] = cs_obj['domain'];
+            vm_obj['cs_zone'] = $(vm).find('.dst_zone_id').text();
+            vm_obj['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
+            if ($(vm).find('.dst_network_id').text() != '') {
+              vm_obj['cs_network'] = $(vm).find('.dst_network_id').text();
+            }
+            vms[$(vm).data('id')] = vm_obj;
+          } else {
+            ready = false;
+            alert($(vm).find('h4').text()+" is missing required fields for migration.");
+          }
+        });
+        if (ready) {
+          $('#accordion').accordion('option', 'active', 1);
+        }
+      }
     </script>
 	</head>
 	<body>
@@ -271,57 +302,15 @@
             <div class="clear"> </div>
           </div>
           <div class="vm_list">
-            <div class="vm" data-id="1" >
-              <h4>CentOS</h4>
+            
+            <div id="vm_tpl" class="vm" style="display:none;">
+              <h4></h4>
               <span class="vm_select">
                 <span class="vm_select_label">Select</span>
-                <input id="1" class="checkbox" type="checkbox" /><label class="checkbox_label" for="1"></label>
+                <input class="checkbox" type="checkbox" /><label class="checkbox_label"></label>
               </span>
               <div class="vm_content">
                 <div class="left">
-                  <div class="detail"><span class="label">Root Drive</span> CentOS65.ovf</div>
-                  <div class="detail"><span class="label">Data Drive</span> Expanded.ovf</div>
-                  <div class="detail"><span class="label">Memory</span> 1024 Mb</div>
-                  <div class="detail"><span class="label">CPU</span> 2 x 1000 Mhz</div>
-                </div>
-                <div class="right">
-                  <div class="detail">
-                    <span class="label">Account</span>
-                    <span class="dst_account"> - - - </span>
-                    <span class="dst_account_id hidden"></span>
-                  </div>
-                  <div class="detail">
-                    <span class="label">Zone</span>
-                    <span class="dst_zone"> - - - </span>
-                    <span class="dst_zone_id hidden"></span>
-                  </div>
-                  <div class="detail">
-                    <span class="label">Network</span>
-                    <span class="dst_network"> - - - </span>
-                    <span class="dst_network_id hidden"></span>
-                  </div>
-                  <div class="detail">
-                    <span class="label">Compute Offering</span>
-                    <span class="dst_compute_offering"> - - - </span>
-                    <span class="dst_compute_offering_id hidden"></span>
-                  </div>
-                </div>
-                <div class="clear"></div>
-              </div>
-            </div>
-
-            <div class="vm" data-id="2">
-              <h4>Windows 2008 Enterprise</h4>
-              <span class="vm_select">
-                <span class="vm_select_label">Select</span>
-                <input id="2" class="checkbox" type="checkbox" /><label class="checkbox_label" for="2"></label>
-              </span>
-              <div class="vm_content">
-                <div class="left">
-                  <div class="detail"><span class="label">Root Drive</span> Windows-2008-Ent.ovf</div>
-                  <div class="detail"><span class="label">Data Drive</span> 5GbDrive.ovf</div>
-                  <div class="detail"><span class="label">Memory</span> 2048 Mb</div>
-                  <div class="detail"><span class="label">CPU</span> 4 x 1000 Mhz</div>
                 </div>
                 <div class="right">
                   <div class="detail">
