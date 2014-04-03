@@ -97,7 +97,7 @@
           details += '<div class="detail"><span class="label">CPUs</span> <span class="value">'+vm_obj['src_cpus']+'</span></div>';
           details += '<div class="detail"><span class="label">Root Disk</span> <span class="value">'+vm_obj['src_disks'][0]['label']+'</span></div>';
           for (var d=1; d<vm_obj['src_disks'].length; d++) {
-            details += '<div class="detail"><span class="label">Disk</span> <span class="value">'+vm_obj['src_disks'][d]['label']+'</span></div>';
+            details += '<div class="detail"><span class="label">Data Disk</span> <span class="value">'+vm_obj['src_disks'][d]['label']+'</span></div>';
           }
           $(vm_el).find('.vm_content .left').html(details);
           $('.vm_list').append(vm_el);
