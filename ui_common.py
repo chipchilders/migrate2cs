@@ -139,7 +139,7 @@ def discover_account():
 # save the 'vms' object from the client to the running.conf
 @bottle.route('/vms/save', method='POST')
 def save_vms():
-	pprint.pprint(dict(bottle.request.params))
+	pprint.pprint(bottle.request.params.vms)
 	if bottle.request.params.vms:
 		conf.set('STATE', 'vms', bottle.request.params.vms)
 		with open('running.conf', 'wb') as f:
