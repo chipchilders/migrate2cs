@@ -151,6 +151,7 @@
             },
             error: function(xhr, status, err) {
               $('#notice').removeClass().addClass('error').html('Failed to discover the CloudPlatform accounts...<br />'+status+': '+err);
+              $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
               }, 5000);
@@ -260,12 +261,14 @@
             contentType: "application/json; charset=utf-8",
             success: function(data) {
               $('#notice').removeClass().html('Save successful...');
+              $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
               }, 5000);
             },
             error: function(xhr, status, err) {
               $('#notice').removeClass().addClass('error').html('Failed to save the VM objects to the server...<br />'+status+': '+err);
+              $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
               }, 5000);
@@ -324,12 +327,14 @@
                 contentType: "application/json; charset=utf-8",
                 success: function(data) {
                   $('#notice').removeClass().html('Migration started...');
+                  $('#notice').show();
                   setTimeout(function() {
                     $('#notice').fadeOut();
                   }, 5000);
                 },
                 error: function(xhr, status, err) {
                   $('#notice').removeClass().addClass('error').html('Failed to start the migration...<br />'+status+': '+err);
+                  $('#notice').show();
                   setTimeout(function() {
                     $('#notice').fadeOut();
                   }, 5000);
@@ -338,6 +343,7 @@
             },
             error: function(xhr, status, err) {
               $('#notice').removeClass().addClass('error').html('Failed to save the VM objects to the server...<br />'+status+': '+err);
+              $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
               }, 5000);
@@ -346,6 +352,7 @@
           $('#accordion').accordion('option', 'active', 1);
         } else {
           $('#notice').removeClass().addClass('error');
+          $('#notice').show();
           setTimeout(function() {
             $('#notice').fadeOut();
           }, 5000);
