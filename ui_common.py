@@ -133,22 +133,19 @@ def discover_account():
 		#pprint.pprint(resources)
 		return json.dumps(resources)
 	else:
-		return bottle.abort(500, "Account was not defined correctly.")
+		return bottle.abort(500, 'Account was not defined correctly.')
 
 
 # save the 'vms' object from the client to the running.conf
 @bottle.route('/vms/save', method='POST')
 def save_vms():
 	if bottle.request.params.vms:
-		print "inside 'has vms'"
-		conf.set('STATE', 'vms', json.dumps(json.loads(bottle.request.params.vms)))
-		print "conf is set"
+		conf.set('STATE', 'vms', bottle.request.params.vms)
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
-		print "it should return now"
-		return 1
+		return 'ok'
 	else:
-		return bottle.abort(500, "Unable to save the VMs on the server.")
+		return bottle.abort(500, 'Unable to save the VMs on the server.')
 
 # save the 'vms' object from the client to the running.conf
 @bottle.route('/migration/start', method='POST')
@@ -157,9 +154,9 @@ def start_migration():
 		conf.set('STATE', 'migrate', bottle.request.params.migrate)
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
-		return 1
+		return 'ok'
 	else:
-		return bottle.abort(500, "Could not start the migration...")
+		return bottle.abort(500, 'Could not start the migration...')
 
 # routing for static files on the webserver
 @bottle.route('/static/<filepath:path>')

@@ -231,7 +231,6 @@
               "vms":JSON.stringify(vms)
             },
             contentType: "application/json; charset=utf-8",
-            dataType: "json",
             success: function(data) {
               console.log('Save successful...');
             },
@@ -278,7 +277,6 @@
               "vms":JSON.stringify(vms)
             },
             contentType: "application/json; charset=utf-8",
-            dataType: "json",
             success: function(data) {
               $.ajax({
                 url: "/migration/start",
