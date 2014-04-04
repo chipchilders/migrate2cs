@@ -82,7 +82,8 @@ label {
 	position:relative;
 	overflow:visible !important;
 }
-.edit_config {
+.edit_config,
+.edit_migration {
 	position:absolute;
 	right: .3em;
 	top: -5.75em;

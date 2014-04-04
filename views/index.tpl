@@ -16,7 +16,7 @@
       $(function() {
         $('#accordion').accordion({
           heightStyle: 'content',
-          disabled: true,
+          /*disabled: true,*/
           animate: false
         });
         $('button').button();
@@ -72,13 +72,17 @@
 
         // check that the selected VMs are ready and move on to the migration
         $('.migrate').on('click', migrate_selected_vms);
+        // re-open the 'select and migrate' section
+        //$('.edit_migration').on('click', function() {
+        //  $('#accordion').accordion('option', 'active', 0);
+        //});
 
       }); // end onload
 
       
       // FUNCTIONS //
 
-      // build the VM list
+      // build the VM list (and populate it with previous details if any)
       function build_vm_list() {
         for (var i=0; i<vm_order.length; i++) {
           var vm_id = vm_order[i];
@@ -124,7 +128,7 @@
               cs_objs = data;
               update_account_resources();
             },
-            failure: function(err) {
+            error: function(xhr, status, err) {
               alert(err);
             },
             complete: function(xhr, status) {
@@ -200,18 +204,39 @@
             $('#dst_compute_offering option:selected').val() != '') {
           $('.vm_select .checkbox:checked').each(function() {
             var vm = $(this).closest('.vm');
+            var vm_id = $(vm).data('id');
             $(vm).find('.dst_account').text($('#dst_account option:selected').text());
             $(vm).find('.dst_account_id').text($('#dst_account option:selected').val());
+            vms[vm_id]['cs_account_display'] = $('#dst_account option:selected').val();
             $(vm).find('.dst_zone').text($('#dst_zone option:selected').text());
             $(vm).find('.dst_zone_id').text($('#dst_zone option:selected').val());
+            vms[vm_id]['cs_zone'] = $('#dst_zone option:selected').val();
             $(vm).find('.dst_compute_offering').text($('#dst_compute_offering option:selected').text());
             $(vm).find('.dst_compute_offering_id').text($('#dst_compute_offering option:selected').val());
+            vms[vm_id]['cs_service_offering'] = $('#dst_compute_offering option:selected').val();
             if (!$('#dst_network').is(':disabled') && $('#dst_network option:selected').val() != '') {
               $(vm).find('.dst_network').text($('#dst_network option:selected').text());
               $(vm).find('.dst_network_id').text($('#dst_network option:selected').val());
+              vms[vm_id]['cs_network'] = $('#dst_network option:selected').val();
             } else {
               $(vm).find('.dst_network').text('Use Default');
               $(vm).find('.dst_network_id').text('');
+            }
+          });
+          // the vms object has been updated.  save the updated vms object to the server.
+          $.ajax({
+            url: "/vms/save",
+            type: "POST",
+            data: {
+              "vms":JSON.stringify(vms)
+            },
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function(data) {
+              console.log('Save successful...');
+            },
+            error: function(xhr, status, err) {
+              console.log(err);
             }
           });
         } else {
@@ -222,27 +247,59 @@
       // validate and migrate selected VMs
       function migrate_selected_vms() {
         var ready = true;
-        var vms = {};
+        var migrate = [];
         $('.vm_select .checkbox:checked').each(function() {
           var vm = $(this).closest('.vm');
           if ($(vm).find('.dst_account_id').text() != '' && $(vm).find('.dst_zone_id').text() !='' &&
               $(vm).find('.dst_compute_offering_id').text() != '') {
-            var vm_obj = {};
-            var cs_obj = cs_objs['accounts'][$(vm).find('.dst_account_id').text()];
-            vm_obj['cs_account'] = cs_obj['account'];
-            vm_obj['cs_domain'] = cs_obj['domain'];
-            vm_obj['cs_zone'] = $(vm).find('.dst_zone_id').text();
-            vm_obj['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
+            var vm_id = $(vm).data('id');
+            var account_display = $(vm).find('.dst_account_id').text();
+            var cs_obj = cs_objs['accounts'][account_display];
+            vms[vm_id]['cs_account_display'] = account_display;
+            vms[vm_id]['cs_account'] = cs_obj['account'];
+            vms[vm_id]['cs_domain'] = cs_obj['domain'];
+            vms[vm_id]['cs_zone'] = $(vm).find('.dst_zone_id').text();
+            vms[vm_id]['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
             if ($(vm).find('.dst_network_id').text() != '') {
-              vm_obj['cs_network'] = $(vm).find('.dst_network_id').text();
+              vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
             }
-            vms[$(vm).data('id')] = vm_obj;
+            migrate.push(vm_id);
           } else {
             ready = false;
             alert($(vm).find('h4').text()+" is missing required fields for migration.");
           }
         });
         if (ready) {
+          // the vms object has been updated.  save the updated vms object to the server.
+          $.ajax({
+            url: "/vms/save",
+            type: "POST",
+            data: {
+              "vms":JSON.stringify(vms)
+            },
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function(data) {
+              $.ajax({
+                url: "/migration/start",
+                type: "POST",
+                data: {
+                  "migrate":JSON.stringify(migrate)
+                },
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function(data) {
+                  console.log('Migration started...');
+                },
+                error: function(xhr, status, err) {
+                  console.log(err);
+                }
+              });
+            },
+            error: function(xhr, status, err) {
+              console.log(err);
+            }
+          });
           $('#accordion').accordion('option', 'active', 1);
         }
       }
@@ -346,6 +403,7 @@
 
         <h3>Migration Progress</h3>
         <div class="section">
+          <!--<button class="edit_migration">Migration Details</button>-->
           <textarea class="log_output"></textarea>
           <div class="clear button_wrapper">
             <button class="download_log">Download Full Log</button>

@@ -121,10 +121,9 @@ def cs_discover_account_resources(account):
 
 ###  COMMON BOTTLE ROUTES  ###
 
-# routing for getting account details
+# get resources associated with an account
 @bottle.route('/discover/account', method='POST')
 def discover_account():
-	obj = {}
 	account = None
 	if bottle.request.params.account:
 		account = json.loads(bottle.request.params.account)
@@ -135,6 +134,29 @@ def discover_account():
 		return json.dumps(resources)
 	else:
 		return bottle.abort(500, "Account was not defined correctly.")
+
+
+# save the 'vms' object from the client to the running.conf
+@bottle.route('/vms/save', method='POST')
+def save_vms():
+	if bottle.request.params.vms:
+		conf.set('STATE', 'vms', bottle.request.params.vms)
+		with open('running.conf', 'wb') as f:
+			conf.write(f) # update the file to include the changes we have made
+		return 1
+	else:
+		return bottle.abort(500, "Unable to save the VMs on the server.")
+
+# save the 'vms' object from the client to the running.conf
+@bottle.route('/migration/start', method='POST')
+def start_migration():
+	if bottle.request.params.migrate:
+		conf.set('STATE', 'migrate', bottle.request.params.migrate)
+		with open('running.conf', 'wb') as f:
+			conf.write(f) # update the file to include the changes we have made
+		return 1
+	else:
+		return bottle.abort(500, "Could not start the migration...")
 
 # routing for static files on the webserver
 @bottle.route('/static/<filepath:path>')
