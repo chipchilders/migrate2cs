@@ -2,6 +2,19 @@ body {
 	font-family:Arial;
 }
 
+#notice {
+	position:fixed;
+	top:10px;
+	right:10px;
+	border:1px solid #0073EA;
+	background:#DFE8F2;
+	padding:10px;
+}
+#notice.error {
+	border-color:D41A30;
+	background:F7E4E6;
+}
+
 #wrapper {
 	margin-left:auto;
 	margin-right:auto;
@@ -189,9 +202,6 @@ label {
 }
 
 /* jQueryUI overrides */
-.ui-accordion-header {
-	cursor:default !important;
-}
 .ui-accordion-content {
 	font-size:80%;
 }

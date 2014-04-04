@@ -94,6 +94,7 @@
           $(vm_el).find('.vm_select .checkbox').attr('id', vm_id);
           $(vm_el).find('.vm_select .checkbox_label').attr('for', vm_id);
           
+          // build vm details
           var details = '';
           //details += '<div class="detail"><span class="label">Path</span> <span class="value">'+vm_obj['src_path']+'</span></div>';
           details += '<div class="detail"><span class="label">Type</span> <span class="value">'+vm_obj['src_type']+'</span></div>';
@@ -104,6 +105,26 @@
             details += '<div class="detail"><span class="label">Data Disk</span> <span class="value">'+vm_obj['src_disks'][d]['label']+'</span></div>';
           }
           $(vm_el).find('.vm_content .left').html(details);
+
+          // check if there are CS details for this vm and populate if so.
+          if ('cs_account_display' in vm_obj) {
+            $(vm_el).find('.dst_account').text(vm_obj['cs_account_display']);
+            $(vm_el).find('.dst_account_id').text(vm_obj['cs_account_display']);
+          }
+          if ('cs_zone' in vm_obj) {
+            $(vm_el).find('.dst_zone').text(vm_obj['cs_zone_display']);
+            $(vm_el).find('.dst_zone_id').text(vm_obj['cs_zone']);
+          }
+          if ('cs_service_offering' in vm_obj) {
+            $(vm_el).find('.dst_compute_offering').text(vm_obj['cs_service_offering_display']);
+            $(vm_el).find('.dst_compute_offering_id').text(vm_obj['cs_service_offering']);
+          }
+          if ('cs_network' in vm_obj) {
+            $(vm_el).find('.dst_network').text(vm_obj['cs_network_display']);
+            $(vm_el).find('.dst_network_id').text(vm_obj['cs_network']);
+          }
+
+          // append the vm element
           $('.vm_list').append(vm_el);
         }
       }
@@ -129,7 +150,10 @@
               update_account_resources();
             },
             error: function(xhr, status, err) {
-              alert(err);
+              $('#notice').removeClass().addClass('error').html('Failed to discover the CloudPlatform accounts...<br />'+status+': '+err);
+              setTimeout(function() {
+                $('#notice').fadeOut();
+              }, 5000);
             },
             complete: function(xhr, status) {
               $('#dst_account').siblings('.account_loader').hide();
@@ -210,13 +234,16 @@
             vms[vm_id]['cs_account_display'] = $('#dst_account option:selected').val();
             $(vm).find('.dst_zone').text($('#dst_zone option:selected').text());
             $(vm).find('.dst_zone_id').text($('#dst_zone option:selected').val());
+            vms[vm_id]['cs_zone_display'] = $('#dst_zone option:selected').text();
             vms[vm_id]['cs_zone'] = $('#dst_zone option:selected').val();
             $(vm).find('.dst_compute_offering').text($('#dst_compute_offering option:selected').text());
             $(vm).find('.dst_compute_offering_id').text($('#dst_compute_offering option:selected').val());
+            vms[vm_id]['cs_service_offering_display'] = $('#dst_compute_offering option:selected').text();
             vms[vm_id]['cs_service_offering'] = $('#dst_compute_offering option:selected').val();
             if (!$('#dst_network').is(':disabled') && $('#dst_network option:selected').val() != '') {
               $(vm).find('.dst_network').text($('#dst_network option:selected').text());
               $(vm).find('.dst_network_id').text($('#dst_network option:selected').val());
+              vms[vm_id]['cs_network_display'] = $('#dst_network option:selected').text();
               vms[vm_id]['cs_network'] = $('#dst_network option:selected').val();
             } else {
               $(vm).find('.dst_network').text('Use Default');
@@ -232,10 +259,16 @@
             },
             contentType: "application/json; charset=utf-8",
             success: function(data) {
-              console.log('Save successful...');
+              $('#notice').removeClass().html('Save successful...');
+              setTimeout(function() {
+                $('#notice').fadeOut();
+              }, 5000);
             },
             error: function(xhr, status, err) {
-              console.log(err);
+              $('#notice').removeClass().addClass('error').html('Failed to save the VM objects to the server...<br />'+status+': '+err);
+              setTimeout(function() {
+                $('#notice').fadeOut();
+              }, 5000);
             }
           });
         } else {
@@ -247,6 +280,7 @@
       function migrate_selected_vms() {
         var ready = true;
         var migrate = [];
+        $('#notice').html('');
         $('.vm_select .checkbox:checked').each(function() {
           var vm = $(this).closest('.vm');
           if ($(vm).find('.dst_account_id').text() != '' && $(vm).find('.dst_zone_id').text() !='' &&
@@ -258,14 +292,17 @@
             vms[vm_id]['cs_account'] = cs_obj['account'];
             vms[vm_id]['cs_domain'] = cs_obj['domain'];
             vms[vm_id]['cs_zone'] = $(vm).find('.dst_zone_id').text();
+            vms[vm_id]['cs_zone_display'] = $(vm).find('.dst_zone').text();
             vms[vm_id]['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
+            vms[vm_id]['cs_service_offering_display'] = $(vm).find('.dst_compute_offering').text();
             if ($(vm).find('.dst_network_id').text() != '') {
               vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
+              vms[vm_id]['cs_network_display'] = $(vm).find('.dst_network').text();
             }
             migrate.push(vm_id);
           } else {
             ready = false;
-            alert($(vm).find('h4').text()+" is missing required fields for migration.");
+            $('#notice').append($(vm).find('h4').text()+' is missing required fields for migration.<br/>');
           }
         });
         if (ready) {
@@ -285,25 +322,39 @@
                   "migrate":JSON.stringify(migrate)
                 },
                 contentType: "application/json; charset=utf-8",
-                dataType: "json",
                 success: function(data) {
-                  console.log('Migration started...');
+                  $('#notice').removeClass().html('Migration started...');
+                  setTimeout(function() {
+                    $('#notice').fadeOut();
+                  }, 5000);
                 },
                 error: function(xhr, status, err) {
-                  console.log(err);
+                  $('#notice').removeClass().addClass('error').html('Failed to start the migration...<br />'+status+': '+err);
+                  setTimeout(function() {
+                    $('#notice').fadeOut();
+                  }, 5000);
                 }
               });
             },
             error: function(xhr, status, err) {
-              console.log(err);
+              $('#notice').removeClass().addClass('error').html('Failed to save the VM objects to the server...<br />'+status+': '+err);
+              setTimeout(function() {
+                $('#notice').fadeOut();
+              }, 5000);
             }
           });
           $('#accordion').accordion('option', 'active', 1);
+        } else {
+          $('#notice').removeClass().addClass('error');
+          setTimeout(function() {
+            $('#notice').fadeOut();
+          }, 5000);
         }
       }
     </script>
 	</head>
 	<body>
+    <div id="notice" style="display:none;"></div>
     <div id="wrapper">
       <h1>Migrate to CloudPlatform</h1>
       <div id="accordion">
