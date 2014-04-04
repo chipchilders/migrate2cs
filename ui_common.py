@@ -140,9 +140,12 @@ def discover_account():
 @bottle.route('/vms/save', method='POST')
 def save_vms():
 	if bottle.request.params.vms:
+		print "inside 'has vms'"
 		conf.set('STATE', 'vms', json.dumps(json.loads(bottle.request.params.vms)))
+		print "conf is set"
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
+		print "it should return now"
 		return 1
 	else:
 		return bottle.abort(500, "Unable to save the VMs on the server.")
