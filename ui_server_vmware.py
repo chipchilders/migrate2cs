@@ -79,9 +79,9 @@ def discover_src_vms():
 			for disk in properties['disks']:
 				vms[vm_id]['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
 
-			if '64-bit' in vm['src_type'].lower():
+			if '64-bit' in vms[vm_id]['src_type'].lower():
 				vms[vm_id]['src_os_arch'] = 64
-			elif '32-bit' in vm['src_type'].lower():
+			elif '32-bit' in vms[vm_id]['src_type'].lower():
 				vms[vm_id]['src_os_arch'] = 32
 
 			##pprint.pprint(properties)
