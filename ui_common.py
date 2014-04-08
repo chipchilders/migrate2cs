@@ -158,6 +158,11 @@ def start_migration():
 	else:
 		return bottle.abort(500, 'Could not start the migration...')
 
+# serve a favicon.ico so the pages do not return a 404 for the /favicon.ico path in the browser.
+@bottle.route('/favicon.ico')
+def favicon():
+    return bottle.static_file('favicon.png', root='./views/images/')
+
 # routing for static files on the webserver
 @bottle.route('/static/<filepath:path>')
 def server_static(filepath):
