@@ -152,4 +152,4 @@ bottle.run(
 	host='0.0.0.0',
 	port=8787,
 	reloader=True,
-	debug=False)
+	debug=conf.getboolean('WEBSERVER', 'debug'))
