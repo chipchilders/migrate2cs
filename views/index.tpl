@@ -260,14 +260,14 @@
             },
             contentType: "application/json; charset=utf-8",
             success: function(data) {
-              $('#notice').removeClass().html('Save successful...');
+              $('#notice').removeClass().html('Saved the applied configuration to the server...');
               $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
               }, 5000);
             },
             error: function(xhr, status, err) {
-              $('#notice').removeClass().addClass('error').html('Failed to save the VM objects to the server...<br />'+status+': '+err);
+              $('#notice').removeClass().addClass('error').html('Failed to save the configuration to the server...<br />'+status+': '+err);
               $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
@@ -326,14 +326,14 @@
                 },
                 contentType: "application/json; charset=utf-8",
                 success: function(data) {
-                  $('#notice').removeClass().html('Migration started...');
+                  $('#notice').removeClass().html('The migration has started.  View the log for progress...');
                   $('#notice').show();
                   setTimeout(function() {
                     $('#notice').fadeOut();
                   }, 5000);
                 },
                 error: function(xhr, status, err) {
-                  $('#notice').removeClass().addClass('error').html('Failed to start the migration...<br />'+status+': '+err);
+                  $('#notice').removeClass().addClass('error').html('Failed to start the migration process...<br />'+status+': '+err);
                   $('#notice').show();
                   setTimeout(function() {
                     $('#notice').fadeOut();
@@ -342,7 +342,7 @@
               });
             },
             error: function(xhr, status, err) {
-              $('#notice').removeClass().addClass('error').html('Failed to save the VM objects to the server...<br />'+status+': '+err);
+              $('#notice').removeClass().addClass('error').html('Failed to save the configuration to the server...<br />'+status+': '+err);
               $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
