@@ -63,36 +63,37 @@ def discover_src_vms():
 			vm_id = hashlib.sha1(properties['name']+"|"+properties['path']).hexdigest()
 			if vm_id not in order:
 				order.append(vm_id)
-			vm = {
-				'id':vm_id,
-				'src_dc':dc_name,
-				'src_name':properties['name'], 
-				'src_path':properties['path'],
-				'src_memory':properties['memory_mb'],
-				'src_cpus':properties['num_cpu'],
-				'src_type':properties['guest_full_name'],
-				'src_disks':[],
-				'src_status':src_vm.get_status(basic_status=True)
-			}
+			if vm_id not in vms:
+				vms[vm_id] = {}
+
+			vms[vm_id]['id'] = vm_id
+			vms[vm_id]['src_dc'] = dc_name
+			vms[vm_id]['src_name'] = properties['name'] 
+			vms[vm_id]['src_path'] = properties['path']
+			vms[vm_id]['src_memory'] = properties['memory_mb']
+			vms[vm_id]['src_cpus'] = properties['num_cpu']
+			vms[vm_id]['src_type'] = properties['guest_full_name']
+			vms[vm_id]['src_disks'] = []
+			vms[vm_id]['src_status'] = src_vm.get_status(basic_status=True)
+
 			for disk in properties['disks']:
-				vm['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
+				vms[vm_id]['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
 
 			if '64-bit' in vm['src_type'].lower():
-				vm['src_os_arch'] = 64
+				vms[vm_id]['src_os_arch'] = 64
 			elif '32-bit' in vm['src_type'].lower():
-				vm['src_os_arch'] = 32
+				vms[vm_id]['src_os_arch'] = 32
 
 			##pprint.pprint(properties)
-			#print("Name: %s" % vm['src_name'])
-			#print("Path: %s" % vm['src_path'])
-			#print("Memory: %s" % vm['src_memory'])
-			#print("CPU: %s" % vm['src_cpus'])
-			#print("Type: %s" % vm['src_type'])
+			#print("Name: %s" % vms[vm_id]['src_name'])
+			#print("Path: %s" % vms[vm_id]['src_path'])
+			#print("Memory: %s" % vms[vm_id]['src_memory'])
+			#print("CPU: %s" % vms[vm_id]['src_cpus'])
+			#print("Type: %s" % vms[vm_id]['src_type'])
 			#print("Disks:")
-			#for disk in vm['src_disks']:
+			#for disk in vms[vm_id]['src_disks']:
 			#	print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
 			#print("")
-			vms[vm_id] = vm
 
 	### Update the running.conf file
 	conf.set('STATE', 'vms', json.dumps(vms))
