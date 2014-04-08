@@ -10,12 +10,16 @@
 
 import hashlib
 import json
+import logging
+import logging.handlers
 import pprint
 from pysphere import VIServer
 from ui_common import *
 
 conf = ConfigParser()
 conf.add_section('VMWARE')
+conf.add_section('WEBSERVER')
+conf.set('WEBSERVER', 'debug', 'False')
 # read in config files if they exist
 conf.read(['./settings.conf', './running.conf'])
 
@@ -29,6 +33,20 @@ if not conf.has_option('VMWARE', 'username'):
 	sys.exit("Config required in settings.conf: [VMWARE] -> username")
 if not conf.has_option('VMWARE', 'password'):
 	sys.exit("Config required in settings.conf: [VMWARE] -> password")
+
+
+# add server logging
+log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+log = logging.getLogger()
+if conf.getboolean('WEBSERVER', 'debug'):
+    log.setLevel(logging.DEBUG)
+else:
+    log.setLevel(logging.INFO)
+logging.basicConfig(format='%(asctime)s %(message)s')
+log_file_handler = logging.handlers.TimedRotatingFileHandler('server.log', when='midnight', interval=1, backupCount=30)
+log_file_handler.setFormatter(log_formatter)
+log.addHandler(log_file_handler)
+
 
 def discover_src_vms():
 	conf.read(['./running.conf'])
