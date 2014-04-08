@@ -260,7 +260,7 @@
             },
             contentType: "application/json; charset=utf-8",
             success: function(data) {
-              $('#notice').removeClass().html('Saved the applied configuration to the server...');
+              $('#notice').removeClass().html('The applied configuration was saved to the server...');
               $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
