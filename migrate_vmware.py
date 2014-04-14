@@ -19,8 +19,8 @@ if not conf.has_section('STATE'):
 if not conf.has_option('STATE', 'migrate'):
 	conf.set('STATE', 'migrate', '[]') # parsed with: json.loads(conf.get('STATE', 'migrate'))
 
-timestamp = int(time.time())
-conf.set('VMWARE', 'log_file', './logs/vmware-'+timestamp+'.log')
+timestamp = int(time.time()) # int removes the fractional seconds
+conf.set('VMWARE', 'log_file', './logs/vmware-'+str(timestamp)+'.log')
 
 # add migration logging
 log = logging.getLogger()
