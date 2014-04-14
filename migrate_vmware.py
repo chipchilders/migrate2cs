@@ -5,6 +5,7 @@ from pysphere import VIServer
 from lib.cloudstack import cs
 import json
 import logging
+import os
 import subprocess
 import time
 import sys
@@ -30,7 +31,7 @@ conf.set('VMWARE', 'log_file', './logs/vmware-'+str(timestamp)+'.log')
 # add migration logging
 log = logging.getLogger()
 log_handler = logging.FileHandler(conf.get('VMWARE', 'log_file'))
-log_format = logging.Formatter('%(asctime)s %(message)s')
+log_format = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
 log_handler.setFormatter(log_format)
 log.addHandler(log_handler) 
 log.setLevel(logging.INFO)
@@ -53,9 +54,32 @@ def export_vm(vm_id):
 	try:
 		output = subprocess.check_output(cmd)
 	except subprocess.CalledProcessError, e:
-		log.info('Failed to export %s with error: %s' % (vms[vm_id]['src_name'], e.output))
-		has_errors = True
-	log.info('Output is: %s' % (output))
+		file_path = ''
+		initial_error = e.output
+		for line in e.output.split('\n'):
+			if 'File already exists' in line:
+				file_path = line.split('File already exists: ')[-1]
+				break
+		if file_path:
+			log.info('Removing existing file for this file location...')
+			rm_error = False
+			try:
+				os.remove(file_path)
+			except:
+				rm_error = True
+				has_error = True
+				log.error('Failed to remove the existing file...')
+				log.error('Failed to export %s with error... \n%s' % (vms[vm_id]['src_name'], initial_error))
+			if not rm_error:
+				try:
+					output = subprocess.check_output(cmd)
+				except subprocess.CalledProcessError, e:
+					log.error('Failed to export %s with error... \n%s' % (vms[vm_id]['src_name'], e.output))
+					has_errors = True
+		else:
+			log.error('Failed to export %s with error... \n%s' % (vms[vm_id]['src_name'], e.output))
+			has_errors = True
+	log.info('CMD Output...\n%s' % (output))
 
 
 def import_vm(vm_id):
@@ -71,7 +95,7 @@ def do_migration():
 	vms = json.loads(conf.get('STATE', 'vms'))
 	migrate = json.loads(conf.get('STATE', 'migrate'))
 	for vm_id in migrate[:]: # makes a copy of the list so we can delete from the original
-		log.info('Looking at vm_id: %s' % (vm_id))
+		log.info('Working on vm_id: %s' % (vm_id))
 		state = vms[vm_id]['state']
 		if state == '':
 			export_vm(vm_id)
