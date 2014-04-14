@@ -36,7 +36,7 @@ log_handler.setFormatter(log_format)
 log.addHandler(log_handler) 
 log.setLevel(logging.INFO)
 
-has_errors = False
+conf.set('STATE', 'migrate_error', 'False')
 
 def export_vm(vm_id):
 	# export the vm
@@ -61,25 +61,25 @@ def export_vm(vm_id):
 				file_path = line.split('File already exists: ')[-1]
 				break
 		if file_path:
-			log.info('Removing existing file for this file location...')
+			log.info('Export file exists.  Attempting to remove it so we can export...')
 			rm_error = False
 			try:
 				os.remove(file_path)
 			except:
 				rm_error = True
-				has_error = True
+				conf.set('STATE', 'migrate_error', 'True')
 				log.error('Failed to remove the existing file...')
-				log.error('Failed to export %s with error... \n%s' % (vms[vm_id]['src_name'], initial_error))
+				log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], initial_error))
 			if not rm_error:
+				log.info('File removed successfully.  Attempting to export again...')
 				try:
 					output = subprocess.check_output(cmd)
 				except subprocess.CalledProcessError, e:
-					log.error('Failed to export %s with error... \n%s' % (vms[vm_id]['src_name'], e.output))
-					has_errors = True
+					log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
+					conf.set('STATE', 'migrate_error', 'True')
 		else:
-			log.error('Failed to export %s with error... \n%s' % (vms[vm_id]['src_name'], e.output))
-			has_errors = True
-	log.info('CMD Output...\n%s' % (output))
+			log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
+			conf.set('STATE', 'migrate_error', 'True')
 
 
 def import_vm(vm_id):
@@ -115,8 +115,11 @@ def do_migration():
 
 if __name__ == "__main__":
 	do_migration()
-	if has_errors:
+	if conf.getboolean('STATE', 'migrate_error'):
 		log.info('\n\nFinished with ERRORS!!!\n\n')
 	else:
 		log.info('\n\nALL FINISHED!!!\n\n')
+
+	# cleanup settings that need to be refereshed each run
+	conf.remove_option('STATE', 'migrate_error')
 
