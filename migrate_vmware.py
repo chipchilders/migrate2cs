@@ -47,7 +47,7 @@ def export_vm(vm_id):
 		conf.get('VMWARE', 'endpoint'),
 		vms[vm_id]['src_dc'],
 		vms[vm_id]['src_path'].replace(' ', ''))) # connection details
-	cmd.append('~/ovas/') # destination location
+	cmd.append('/mnt/share/vhds') # destination location
 	output = ''
 	try:
 		output = subprocess.check_output(cmd)
