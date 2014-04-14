@@ -4,6 +4,7 @@ from ConfigParser import ConfigParser
 from pysphere import VIServer
 from lib.cloudstack import cs
 import json
+import logging
 import subprocess
 import time
 
