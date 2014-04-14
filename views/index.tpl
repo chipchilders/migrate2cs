@@ -386,6 +386,9 @@
 
         <h3>Select and Migrate VMs</h3>
         <div class="section">
+          <div class="overlay" style="display:none;">
+            <div class="overlay_text">... MIGRATING ...</div>
+          </div>
           <!--<button class="edit_config">Edit Configuration</button>-->
           <div class="action_panel">
             <h4>Associate CloudPlatform settings to the selected VMs</h4>

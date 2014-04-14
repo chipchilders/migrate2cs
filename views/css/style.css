@@ -202,6 +202,27 @@ label {
 	padding-bottom:1em;
 }
 
+.overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	background: #888;
+	height: 100%;
+	width: 100%;
+	z-index: 5;
+	-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+	filter: alpha(opacity=50);
+	-moz-opacity: 0.5;
+	-khtml-opacity: 0.5;
+	opacity: 0.5;
+}
+.overlay_text {
+	text-align: center;
+	font-size: 300%;
+	color: white;
+	padding-top:40%;
+}
+
 /* jQueryUI overrides */
 .ui-accordion-content {
 	font-size:80%;
