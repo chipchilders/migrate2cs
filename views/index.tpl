@@ -227,53 +227,61 @@
       function apply_config_to_vms() {
         if ($('#dst_account option:selected').val() != '' && $('#dst_zone option:selected').val() != '' &&
             $('#dst_compute_offering option:selected').val() != '') {
-          $('.vm_select .checkbox:checked').each(function() {
-            var vm = $(this).closest('.vm');
-            var vm_id = $(vm).data('id');
-            $(vm).find('.dst_account').text($('#dst_account option:selected').text());
-            $(vm).find('.dst_account_id').text($('#dst_account option:selected').val());
-            vms[vm_id]['cs_account_display'] = $('#dst_account option:selected').val();
-            $(vm).find('.dst_zone').text($('#dst_zone option:selected').text());
-            $(vm).find('.dst_zone_id').text($('#dst_zone option:selected').val());
-            vms[vm_id]['cs_zone_display'] = $('#dst_zone option:selected').text();
-            vms[vm_id]['cs_zone'] = $('#dst_zone option:selected').val();
-            $(vm).find('.dst_compute_offering').text($('#dst_compute_offering option:selected').text());
-            $(vm).find('.dst_compute_offering_id').text($('#dst_compute_offering option:selected').val());
-            vms[vm_id]['cs_service_offering_display'] = $('#dst_compute_offering option:selected').text();
-            vms[vm_id]['cs_service_offering'] = $('#dst_compute_offering option:selected').val();
-            if (!$('#dst_network').is(':disabled') && $('#dst_network option:selected').val() != '') {
-              $(vm).find('.dst_network').text($('#dst_network option:selected').text());
-              $(vm).find('.dst_network_id').text($('#dst_network option:selected').val());
-              vms[vm_id]['cs_network_display'] = $('#dst_network option:selected').text();
-              vms[vm_id]['cs_network'] = $('#dst_network option:selected').val();
-            } else {
-              $(vm).find('.dst_network').text('Use Default');
-              $(vm).find('.dst_network_id').text('');
-            }
-          });
-          // the vms object has been updated.  save the updated vms object to the server.
-          $.ajax({
-            url: "/vms/save",
-            type: "POST",
-            data: {
-              "vms":JSON.stringify(vms)
-            },
-            contentType: "application/json; charset=utf-8",
-            success: function(data) {
-              $('#notice').removeClass().html('The applied configuration was saved to the server...');
-              $('#notice').show();
-              setTimeout(function() {
-                $('#notice').fadeOut();
-              }, 5000);
-            },
-            error: function(xhr, status, err) {
-              $('#notice').removeClass().addClass('error').html('Failed to save the configuration to the server...<br />'+status+': '+err);
-              $('#notice').show();
-              setTimeout(function() {
-                $('#notice').fadeOut();
-              }, 5000);
-            }
-          });
+          if ($('.vm_select .checkbox:checked').length > 0) {
+            $('.vm_select .checkbox:checked').each(function() {
+              var vm = $(this).closest('.vm');
+              var vm_id = $(vm).data('id');
+              $(vm).find('.dst_account').text($('#dst_account option:selected').text());
+              $(vm).find('.dst_account_id').text($('#dst_account option:selected').val());
+              vms[vm_id]['cs_account_display'] = $('#dst_account option:selected').val();
+              $(vm).find('.dst_zone').text($('#dst_zone option:selected').text());
+              $(vm).find('.dst_zone_id').text($('#dst_zone option:selected').val());
+              vms[vm_id]['cs_zone_display'] = $('#dst_zone option:selected').text();
+              vms[vm_id]['cs_zone'] = $('#dst_zone option:selected').val();
+              $(vm).find('.dst_compute_offering').text($('#dst_compute_offering option:selected').text());
+              $(vm).find('.dst_compute_offering_id').text($('#dst_compute_offering option:selected').val());
+              vms[vm_id]['cs_service_offering_display'] = $('#dst_compute_offering option:selected').text();
+              vms[vm_id]['cs_service_offering'] = $('#dst_compute_offering option:selected').val();
+              if (!$('#dst_network').is(':disabled') && $('#dst_network option:selected').val() != '') {
+                $(vm).find('.dst_network').text($('#dst_network option:selected').text());
+                $(vm).find('.dst_network_id').text($('#dst_network option:selected').val());
+                vms[vm_id]['cs_network_display'] = $('#dst_network option:selected').text();
+                vms[vm_id]['cs_network'] = $('#dst_network option:selected').val();
+              } else {
+                $(vm).find('.dst_network').text('Use Default');
+                $(vm).find('.dst_network_id').text('');
+              }
+            });
+            // the vms object has been updated.  save the updated vms object to the server.
+            $.ajax({
+              url: "/vms/save",
+              type: "POST",
+              data: {
+                "vms":JSON.stringify(vms)
+              },
+              contentType: "application/json; charset=utf-8",
+              success: function(data) {
+                $('#notice').removeClass().html('The applied configuration was saved to the server...');
+                $('#notice').show();
+                setTimeout(function() {
+                  $('#notice').fadeOut();
+                }, 5000);
+              },
+              error: function(xhr, status, err) {
+                $('#notice').removeClass().addClass('error').html('Failed to save the configuration to the server...<br />'+status+': '+err);
+                $('#notice').show();
+                setTimeout(function() {
+                  $('#notice').fadeOut();
+                }, 5000);
+              }
+            });
+          } else {
+            $('#notice').removeClass().addClass('error').html('You need to select VMs to apply the configuration to...');
+            $('#notice').show();
+            setTimeout(function() {
+              $('#notice').fadeOut();
+            }, 5000);
+          }
         } else {
           $('#notice').removeClass().addClass('error').html('Please select a configuration for all the requred fields...');
           $('#notice').show();
