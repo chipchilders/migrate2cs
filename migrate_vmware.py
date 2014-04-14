@@ -35,6 +35,7 @@ log_handler.setFormatter(log_format)
 log.addHandler(log_handler) 
 log.setLevel(logging.INFO)
 
+has_errors = False
 
 def export_vm(vm_id):
 	# export the vm
@@ -53,6 +54,7 @@ def export_vm(vm_id):
 		output = subprocess.check_output(cmd)
 	except subprocess.CalledProcessError, e:
 		log.info('Failed to export %s with error: %s' % (vms[vm_id]['src_name'], e.output))
+		has_errors = True
 	log.info('Output is: %s' % (output))
 
 
@@ -89,5 +91,8 @@ def do_migration():
 
 if __name__ == "__main__":
 	do_migration()
-	print('\n\nALL FINISHED!!!\n\n')
+	if has_errors:
+		log.info('\n\nFinished with ERRORS!!!\n\n')
+	else:
+		log.info('\n\nALL FINISHED!!!\n\n')
 
