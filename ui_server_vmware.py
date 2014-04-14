@@ -164,6 +164,7 @@ def start_migration():
 @bottle.route('/migration/log')
 def get_migration_log():
 	output = ''
+	conf.read(['./running.conf'])
 	with open(conf.get('VMWARE', 'log_file'), 'r') as f:
 		output = f.read()
 	return output
