@@ -510,7 +510,7 @@
         <h3>Migration Progress</h3>
         <div class="section">
           <!--<button class="edit_migration">Migration Details</button>-->
-          <textarea class="log_output"></textarea>
+          <textarea class="log_output">... Waiting for initial log data ...</textarea>
           <div class="clear button_wrapper">
             <button class="download_log">Download Full Log</button>
           </div>

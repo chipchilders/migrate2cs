@@ -164,11 +164,8 @@ def start_migration():
 @bottle.route('/migration/log')
 def get_migration_log():
 	output = ''
-	try:
-		with open(conf.get('VMWARE', 'log_file'), 'r') as f:
-			output = f.read()
-	except:
-		return bottle.abort(500, 'Failed to read the log file...')
+	with open(conf.get('VMWARE', 'log_file'), 'r') as f:
+		output = f.read()
 	return output
 
 # start the server
