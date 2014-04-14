@@ -12,6 +12,7 @@
       var cs_objs = {{!cs_objs}};
       var vms = {{!vms}};
       var vm_order = {{!vm_order}};
+      var poll_interval = null;
 
       $(function() {
         $('#accordion').accordion({
@@ -348,6 +349,7 @@
                   $('#accordion').accordion('option', 'active', 1);
                 },
                 success: function(data) {
+                  poll_interval = setInterval('get_migration_log();', 10000);
                   $('#notice').removeClass().html('The migration has started.  View the log for progress...');
                   $('#notice').show();
                   setTimeout(function() {
@@ -381,6 +383,25 @@
           }, 5000);
         }
       }
+
+      // poll for log updates
+      function get_migration_log() {
+        $.ajax({
+          url: "/migration/log",
+          success: function(data) {
+            if (data != '') {
+              $('.log_output').val(data);
+            }
+          },
+          error: function(xhr, status, err) {
+            $('#notice').removeClass().addClass('error').html('Poll for migration log errored...<br />'+status+': '+err);
+            $('#notice').show();
+            setTimeout(function() {
+              $('#notice').fadeOut();
+            }, 5000);
+          }
+        });
+      }
     </script>
 	</head>
 	<body>
@@ -412,7 +433,7 @@
           <div class="overlay" style="display:none;">
             <div class="overlay_text">
               ... MIGRATING ...<br />
-              <a href="javascript:$('#accordion').accordion('option', 'active', 1); return false;">view progress</a>
+              <a href="javascript:$('#accordion').accordion('option', 'active', 1);">view progress</a>
             </div>
           </div>
           <!--<button class="edit_config">Edit Configuration</button>-->
