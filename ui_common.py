@@ -3,6 +3,7 @@ import bottle
 import json
 from lib.cloudstack import CloudStack, cs
 import pprint
+import subprocess
 
 conf = ConfigParser()
 # read in config files if they exist
@@ -147,16 +148,6 @@ def save_vms():
 	else:
 		return bottle.abort(500, 'Unable to save the VMs on the server.')
 
-# save the 'vms' object from the client to the running.conf
-@bottle.route('/migration/start', method='POST')
-def start_migration():
-	if bottle.request.params.migrate:
-		conf.set('STATE', 'migrate', bottle.request.params.migrate)
-		with open('running.conf', 'wb') as f:
-			conf.write(f) # update the file to include the changes we have made
-		return 'ok'
-	else:
-		return bottle.abort(500, 'Could not start the migration...')
 
 # serve a favicon.ico so the pages do not return a 404 for the /favicon.ico path in the browser.
 @bottle.route('/favicon.ico')

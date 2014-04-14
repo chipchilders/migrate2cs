@@ -147,6 +147,20 @@ def index():
 	return dict(variables)
 
 
+# start the migration
+@bottle.route('/migration/start', method='POST')
+def start_migration():
+	if bottle.request.params.migrate:
+		conf.set('STATE', 'migrate', bottle.request.params.migrate)
+		conf.set('STATE', 'migration_timestamp', int(bottle.request.params.timestamp)/1000)
+		with open('running.conf', 'wb') as f:
+			conf.write(f) # update the file to include the changes we have made
+		subprocess.Popen(['python', 'migrate_vmware.py'])
+		return 'ok'
+	else:
+		return bottle.abort(500, 'Could not start the migration...')
+
+
 # start the server
 bottle.run(
 	server='rocket',

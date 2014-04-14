@@ -9,7 +9,6 @@ import os
 import re
 import subprocess
 import sys
-import time
 if sys.version_info < (2, 7):
 	import lib.subprocess_compat
 	subprocess.check_output = lib.subprocess_compat.check_output
@@ -26,7 +25,7 @@ if not conf.has_section('STATE'):
 if not conf.has_option('STATE', 'migrate'):
 	conf.set('STATE', 'migrate', '[]') # parsed with: json.loads(conf.get('STATE', 'migrate'))
 
-timestamp = int(time.time()) # int removes the fractional seconds
+timestamp = conf.getint('STATE', 'migration_timestamp')
 conf.set('VMWARE', 'log_file', './logs/vmware-'+str(timestamp)+'.log')
 
 # add migration logging

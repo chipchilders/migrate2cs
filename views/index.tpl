@@ -322,9 +322,14 @@
                 url: "/migration/start",
                 type: "POST",
                 data: {
-                  "migrate":JSON.stringify(migrate)
+                  "migrate":JSON.stringify(migrate),
+                  "timestamp":new Date().getTime()
                 },
                 contentType: "application/json; charset=utf-8",
+                beforeSend: function(xhr, settings) {
+                  $('#ui-accordion-accordion-panel-0 .overlay').show();
+                  $('#accordion').accordion('option', 'active', 1);
+                },
                 success: function(data) {
                   $('#notice').removeClass().html('The migration has started.  View the log for progress...');
                   $('#notice').show();
@@ -335,6 +340,8 @@
                 error: function(xhr, status, err) {
                   $('#notice').removeClass().addClass('error').html('Failed to start the migration process...<br />'+status+': '+err);
                   $('#notice').show();
+                  $('#ui-accordion-accordion-panel-0 .overlay').hide();
+                  $('#accordion').accordion('option', 'active', 0);
                   setTimeout(function() {
                     $('#notice').fadeOut();
                   }, 5000);
@@ -349,7 +356,6 @@
               }, 5000);
             }
           });
-          $('#accordion').accordion('option', 'active', 1);
         } else {
           $('#notice').removeClass().addClass('error');
           $('#notice').show();
@@ -387,7 +393,10 @@
         <h3>Select and Migrate VMs</h3>
         <div class="section">
           <div class="overlay" style="display:none;">
-            <div class="overlay_text">... MIGRATING ...</div>
+            <div class="overlay_text">
+              ... MIGRATING ...<br />
+              <a href="javascript:$('#accordion').accordion('option', 'active', 1); return false;">view progress</a>
+            </div>
           </div>
           <!--<button class="edit_config">Edit Configuration</button>-->
           <div class="action_panel">

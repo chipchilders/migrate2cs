@@ -222,6 +222,12 @@ label {
 	color: white;
 	padding-top:110px;
 }
+.overlay_text a,
+.overlay_text a:hover,
+.overlay_text a:active,
+.overlay_text a:visited {
+	color:white;
+}
 
 /* jQueryUI overrides */
 .ui-accordion-content {
