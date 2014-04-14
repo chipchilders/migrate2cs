@@ -85,6 +85,7 @@ def discover_src_vms():
 				vms[vm_id] = {}
 
 			vms[vm_id]['id'] = vm_id
+			vms[vm_id]['state'] = ''
 			vms[vm_id]['src_dc'] = dc_name
 			vms[vm_id]['src_name'] = properties['name'] 
 			vms[vm_id]['src_path'] = properties['path']
