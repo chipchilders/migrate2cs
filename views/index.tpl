@@ -275,7 +275,11 @@
             }
           });
         } else {
-          alert('Please select a configuration for all the requred fields.');
+          $('#notice').removeClass().addClass('error').html('Please select a configuration for all the requred fields...');
+          $('#notice').show();
+          setTimeout(function() {
+            $('#notice').fadeOut();
+          }, 5000);
         }
       }
 
@@ -284,30 +288,35 @@
         var ready = true;
         var migrate = [];
         $('#notice').html('');
-        $('.vm_select .checkbox:checked').each(function() {
-          var vm = $(this).closest('.vm');
-          if ($(vm).find('.dst_account_id').text() != '' && $(vm).find('.dst_zone_id').text() !='' &&
-              $(vm).find('.dst_compute_offering_id').text() != '') {
-            var vm_id = $(vm).data('id');
-            var account_display = $(vm).find('.dst_account_id').text();
-            var cs_obj = cs_objs['accounts'][account_display];
-            vms[vm_id]['cs_account_display'] = account_display;
-            vms[vm_id]['cs_account'] = cs_obj['account'];
-            vms[vm_id]['cs_domain'] = cs_obj['domain'];
-            vms[vm_id]['cs_zone'] = $(vm).find('.dst_zone_id').text();
-            vms[vm_id]['cs_zone_display'] = $(vm).find('.dst_zone').text();
-            vms[vm_id]['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
-            vms[vm_id]['cs_service_offering_display'] = $(vm).find('.dst_compute_offering').text();
-            if ($(vm).find('.dst_network_id').text() != '') {
-              vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
-              vms[vm_id]['cs_network_display'] = $(vm).find('.dst_network').text();
+        if ($('.vm_select .checkbox:checked').length > 0) {
+          $('.vm_select .checkbox:checked').each(function() {
+            var vm = $(this).closest('.vm');
+            if ($(vm).find('.dst_account_id').text() != '' && $(vm).find('.dst_zone_id').text() !='' &&
+                $(vm).find('.dst_compute_offering_id').text() != '') {
+              var vm_id = $(vm).data('id');
+              var account_display = $(vm).find('.dst_account_id').text();
+              var cs_obj = cs_objs['accounts'][account_display];
+              vms[vm_id]['cs_account_display'] = account_display;
+              vms[vm_id]['cs_account'] = cs_obj['account'];
+              vms[vm_id]['cs_domain'] = cs_obj['domain'];
+              vms[vm_id]['cs_zone'] = $(vm).find('.dst_zone_id').text();
+              vms[vm_id]['cs_zone_display'] = $(vm).find('.dst_zone').text();
+              vms[vm_id]['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
+              vms[vm_id]['cs_service_offering_display'] = $(vm).find('.dst_compute_offering').text();
+              if ($(vm).find('.dst_network_id').text() != '') {
+                vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
+                vms[vm_id]['cs_network_display'] = $(vm).find('.dst_network').text();
+              }
+              migrate.push(vm_id);
+            } else {
+              ready = false;
+              $('#notice').append($(vm).find('h4').text()+' is missing required fields for migration.<br/>');
             }
-            migrate.push(vm_id);
-          } else {
-            ready = false;
-            $('#notice').append($(vm).find('h4').text()+' is missing required fields for migration.<br/>');
-          }
-        });
+          });
+        } else {
+          $('#notice').append('You need to select VMs to migrate...');
+          ready = false;
+        }
         if (ready) {
           // the vms object has been updated.  save the updated vms object to the server.
           $.ajax({
