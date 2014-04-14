@@ -86,7 +86,6 @@ def export_vm(vm_id):
 	if not conf.getboolean('STATE', 'migrate_error'):
 		log.info('Finished exporting %s' % (vms[vm_id]['src_name']))
 		vms[vm_id]['state'] = 'exported'
-		conf.set('STATE', 'migrate', json.dumps(migrate))
 		conf.set('STATE', 'vms', json.dumps(vms))
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
