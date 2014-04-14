@@ -7,6 +7,10 @@ import json
 import logging
 import subprocess
 import time
+import sys
+if sys.version_info < (2, 7):
+	import lib.subprocess_compat
+	subprocess.check_output = lib.subprocess_compat.check_output
 
 # setup the conf object and set default values...
 conf = ConfigParser()
