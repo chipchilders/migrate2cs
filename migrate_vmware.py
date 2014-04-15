@@ -126,9 +126,11 @@ def do_migration():
 if __name__ == "__main__":
 	do_migration()
 	if conf.getboolean('STATE', 'migrate_error'):
-		log.info('\n\nFinished with ERRORS!!!\n\n')
+		log.info('Finished with ERRORS!!!\n\n')
 	else:
-		log.info('\n\nALL FINISHED!!!\n\n')
+		log.info('ALL FINISHED!!!\n\n')
+
+	log.info('~~~ ~~~ ~~~ ~~~')
 
 	# cleanup settings that need to be refereshed each run
 	conf.remove_option('STATE', 'migrate_error')

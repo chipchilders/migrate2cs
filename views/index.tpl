@@ -391,6 +391,10 @@
           success: function(data) {
             if (data != '') {
               $('.log_output').val(data);
+              if (ends_with(data, '~~~ ~~~ ~~~ ~~~')) {
+                clearInterval(poll_interval);
+                $('#ui-accordion-accordion-panel-0 .overlay').hide();
+              }
             }
           },
           error: function(xhr, status, err) {
@@ -401,6 +405,11 @@
             }, 5000);
           }
         });
+      }
+
+      // suffix test
+      function ends_with(str, suffix) {
+        return str.indexOf(suffix, str.length - suffix.length) !== -1;
       }
     </script>
 	</head>
