@@ -96,6 +96,8 @@ def discover_src_vms():
 			vms[vm_id]['src_status'] = src_vm.get_status(basic_status=True)
 
 			for disk in properties['disks']:
+				pprint.pprint(disk)
+				print("\n~~~\n")
 				vms[vm_id]['src_disks'].append({'label':disk['label'], 'path':disk['descriptor'], 'type':disk['device']['type']})
 
 			if '64-bit' in vms[vm_id]['src_type'].lower():

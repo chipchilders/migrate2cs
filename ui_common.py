@@ -131,7 +131,6 @@ def discover_account():
 	if account:
 		bottle.response.content_type = 'application/json'
 		resources = cs_discover_account_resources(account)
-		#pprint.pprint(resources)
 		return json.dumps(resources)
 	else:
 		return bottle.abort(500, 'Account was not defined correctly.')
@@ -147,7 +146,7 @@ def save_vms():
 		return 'ok'
 	else:
 		return bottle.abort(500, 'Unable to save the VMs on the server.')
-		
+
 
 # serve a favicon.ico so the pages do not return a 404 for the /favicon.ico path in the browser.
 @bottle.route('/favicon.ico')
