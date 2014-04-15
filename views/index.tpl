@@ -101,9 +101,9 @@
           details += '<div class="detail"><span class="label">Type</span> <span class="value">'+vm_obj['src_type']+'</span></div>';
           details += '<div class="detail"><span class="label">Memory</span> <span class="value">'+vm_obj['src_memory']+'Mb</span></div>';
           details += '<div class="detail"><span class="label">CPUs</span> <span class="value">'+vm_obj['src_cpus']+'</span></div>';
-          details += '<div class="detail"><span class="label">Root Disk</span> <span class="value">'+vm_obj['src_disks'][0]['label']+'</span></div>';
+          details += '<div class="detail"><span class="label">Root Disk</span> <span class="value">'+vm_obj['src_disks'][0]['label']+' - '+vm_obj['src_disks'][0]['size']/(1024*1024)+'GB</span></div>';
           for (var d=1; d<vm_obj['src_disks'].length; d++) {
-            details += '<div class="detail"><span class="label">Data Disk</span> <span class="value">'+vm_obj['src_disks'][d]['label']+'</span></div>';
+            details += '<div class="detail"><span class="label">Data Disk</span> <span class="value">'+vm_obj['src_disks'][d]['label']+' - '+vm_obj['src_disks'][d]['size']/(1024*1024)+'GB</span></div>';
           }
           $(vm_el).find('.vm_content .left').html(details);
 
