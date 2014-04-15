@@ -345,6 +345,7 @@
                 },
                 contentType: "application/json; charset=utf-8",
                 beforeSend: function(xhr, settings) {
+                  $('.log_output').val('... Waiting for initial log data ...');
                   $('#ui-accordion-accordion-panel-0 .overlay').show();
                   $('#accordion').accordion('option', 'active', 1);
                 },
@@ -519,7 +520,7 @@
         <h3>Migration Progress</h3>
         <div class="section">
           <!--<button class="edit_migration">Migration Details</button>-->
-          <textarea class="log_output">... Waiting for initial log data ...</textarea>
+          <textarea class="log_output"></textarea>
           <div class="clear button_wrapper">
             <button class="download_log">Download Full Log</button>
           </div>
