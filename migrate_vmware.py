@@ -106,7 +106,6 @@ def do_migration():
 	vms = json.loads(conf.get('STATE', 'vms'))
 	migrate = json.loads(conf.get('STATE', 'migrate'))
 	for vm_id in migrate[:]: # makes a copy of the list so we can delete from the original
-		log.info('Working on vm_id: %s' % (vm_id))
 		state = vms[vm_id]['state']
 		if state == '':
 			export_vm(vm_id)
