@@ -126,9 +126,9 @@ def do_migration():
 if __name__ == "__main__":
 	do_migration()
 	if conf.getboolean('STATE', 'migrate_error'):
-		log.info('Finished with ERRORS!!!\n\n')
+		log.info('Finished with ERRORS!!!\n')
 	else:
-		log.info('ALL FINISHED!!!\n\n')
+		log.info('ALL FINISHED!!!\n')
 
 	log.info('~~~ ~~~ ~~~ ~~~')
 
