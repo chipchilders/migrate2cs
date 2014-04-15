@@ -391,7 +391,7 @@
           success: function(data) {
             if (data != '') {
               $('.log_output').val(data);
-              if (ends_with(data, '~~~ ~~~ ~~~ ~~~')) {
+              if (ends_with(data, '~~~ ~~~ ~~~ ~~~\n')) {
                 clearInterval(poll_interval);
                 $('#ui-accordion-accordion-panel-0 .overlay').hide();
               }
