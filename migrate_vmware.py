@@ -43,7 +43,7 @@ def export_vm(vm_id):
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
 	vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
-	cmd = 'ovftool -o -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
+	cmd = 'ovftool -o --powerOffSource -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
 		vms[vm_id]['clean_name'],
 		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'), 
 		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
