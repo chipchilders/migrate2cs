@@ -55,9 +55,17 @@ def export_vm(vm_id):
 		vms[vm_id]['src_name'])) # connection details
 	cmd.append('/mnt/share/vhds') # destination location
 	log.info('running command:\n%s' % (str(cmd)))
+	command = 'ovftool -o -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
+		vms[vm_id]['clean_name'],
+		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'), 
+		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
+		conf.get('VMWARE', 'endpoint'),
+		vms[vm_id]['src_dc'],
+		vms[vm_id]['src_name']
+	)
 	output = ''
 	try:
-		output = subprocess.check_output(cmd, shell=True)
+		output = subprocess.check_output(command, shell=True)
 		log.info('running ovftool:\n%s' % (output))
 	except subprocess.CalledProcessError, e:
 		log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
