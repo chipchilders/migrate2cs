@@ -43,19 +43,7 @@ def export_vm(vm_id):
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
 	vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
-	cmd = ['ovftool'] # command
-	cmd.append('-o') # overwrite target
-	cmd.append('-tt=OVA') # output format
-	cmd.append('-n=%s' % (vms[vm_id]['clean_name'])) # target name
-	cmd.append('"vi://%s:%s@%s/%s/vm/%s"' % (
-		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'), 
-		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
-		conf.get('VMWARE', 'endpoint'),
-		vms[vm_id]['src_dc'],
-		vms[vm_id]['src_name'])) # connection details
-	cmd.append('/mnt/share/vhds') # destination location
-	log.info('running command:\n%s' % (str(cmd)))
-	command = 'ovftool -o -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
+	cmd = 'ovftool -o -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
 		vms[vm_id]['clean_name'],
 		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'), 
 		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
@@ -65,8 +53,8 @@ def export_vm(vm_id):
 	)
 	output = ''
 	try:
-		output = subprocess.check_output(command, shell=True)
-		log.info('running ovftool:\n%s' % (output))
+		output = subprocess.check_output(cmd, shell=True)
+		log.info('Running the ovftool...\n%s' % (output))
 	except subprocess.CalledProcessError, e:
 		log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
 		conf.set('STATE', 'migrate_error', 'True')
