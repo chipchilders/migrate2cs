@@ -57,7 +57,7 @@ def export_vm(vm_id):
 	output = ''
 	try:
 		output = subprocess.check_output(cmd)
-		log.info('output from ovftool:\n%s' % (output))
+		log.info('running ovftool:\n%s' % (output))
 	except subprocess.CalledProcessError, e:
 		file_path = ''
 		initial_error = e.output
