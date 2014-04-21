@@ -44,14 +44,15 @@ def export_vm(vm_id):
 	log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
 	vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
 	cmd = ['ovftool'] # command
+	cmd.append('-o') # overwrite target
 	cmd.append('-tt=OVA') # output format
 	cmd.append('-n=%s' % (vms[vm_id]['clean_name'])) # target name
-	cmd.append('\"vi://%s:%s@%s/%s?ds=%s\"' % (
+	cmd.append('\"vi://%s:%s@%s/%s/vm/%s\"' % (
 		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'), 
 		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 		conf.get('VMWARE', 'endpoint'),
 		vms[vm_id]['src_dc'],
-		vms[vm_id]['src_path'])) # connection details
+		vms[vm_id]['name'])) # connection details
 	cmd.append('/mnt/share/vhds') # destination location
 	log.info('running command:\n%s' % (str(cmd)))
 	output = ''
@@ -59,32 +60,8 @@ def export_vm(vm_id):
 		output = subprocess.check_output(cmd)
 		log.info('running ovftool:\n%s' % (output))
 	except subprocess.CalledProcessError, e:
-		file_path = ''
-		initial_error = e.output
-		for line in e.output.split('\n'):
-			if 'File already exists' in line:
-				file_path = line.split('File already exists: ')[-1]
-				break
-		if file_path:
-			log.info('Export file already exists.  Attempting to remove it so we can do a clean export...')
-			rm_error = False
-			try:
-				os.remove(file_path)
-			except:
-				rm_error = True
-				conf.set('STATE', 'migrate_error', 'True')
-				log.error('Failed to remove the existing export file...')
-				log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], initial_error))
-			if not rm_error:
-				log.info('File removed successfully.  Attempting to export again...')
-				try:
-					output = subprocess.check_output(cmd)
-				except subprocess.CalledProcessError, e:
-					log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
-					conf.set('STATE', 'migrate_error', 'True')
-		else:
-			log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
-			conf.set('STATE', 'migrate_error', 'True')
+		log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
+		conf.set('STATE', 'migrate_error', 'True')
 	if not conf.getboolean('STATE', 'migrate_error'):
 		log.info('Finished exporting %s' % (vms[vm_id]['src_name']))
 		vms[vm_id]['state'] = 'exported'
