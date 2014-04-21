@@ -57,7 +57,7 @@ def export_vm(vm_id):
 	log.info('running command:\n%s' % (str(cmd)))
 	output = ''
 	try:
-		output = subprocess.check_output(cmd)
+		output = subprocess.check_output(cmd, shell=True)
 		log.info('running ovftool:\n%s' % (output))
 	except subprocess.CalledProcessError, e:
 		log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
