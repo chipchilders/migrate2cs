@@ -47,7 +47,7 @@ def export_vm(vm_id):
 	cmd.append('-o') # overwrite target
 	cmd.append('-tt=OVA') # output format
 	cmd.append('-n=%s' % (vms[vm_id]['clean_name'])) # target name
-	cmd.append('\"vi://%s:%s@%s/%s/vm/%s\"' % (
+	cmd.append('"vi://%s:%s@%s/%s/vm/%s"' % (
 		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'), 
 		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 		conf.get('VMWARE', 'endpoint'),
