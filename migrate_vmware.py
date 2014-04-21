@@ -51,7 +51,7 @@ def export_vm(vm_id):
 		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 		conf.get('VMWARE', 'endpoint'),
 		vms[vm_id]['src_dc'],
-		vms[vm_id]['src_path'].replace(' ', ''))) # connection details
+		vms[vm_id]['src_path'])) # connection details
 	cmd.append('/mnt/share/vhds') # destination location
 	log.info('running command:\n%s' % (str(cmd)))
 	output = ''
