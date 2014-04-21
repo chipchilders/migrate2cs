@@ -45,8 +45,8 @@ def export_vm(vm_id):
 	vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
 	cmd = ['ovftool'] # command
 	cmd.append('-tt=OVA') # output format
-	cmd.append('-n="%s"' % (vms[vm_id]['clean_name'])) # target name
-	cmd.append('"vi://%s:%s@%s/%s?ds=%s"' % (
+	cmd.append('-n=%s' % (vms[vm_id]['clean_name'])) # target name
+	cmd.append('vi://%s:%s@%s/%s?ds=%s' % (
 		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'), 
 		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 		conf.get('VMWARE', 'endpoint'),
