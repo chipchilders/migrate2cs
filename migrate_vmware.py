@@ -53,9 +53,11 @@ def export_vm(vm_id):
 		vms[vm_id]['src_dc'],
 		vms[vm_id]['src_path'])) # connection details
 	cmd.append('/mnt/share/vhds') # destination location
+	log.info('running command:\n%s' % (str(cmd)))
 	output = ''
 	try:
 		output = subprocess.check_output(cmd)
+		log.info('output from ovftool:\n%s' % (output))
 	except subprocess.CalledProcessError, e:
 		file_path = ''
 		initial_error = e.output
