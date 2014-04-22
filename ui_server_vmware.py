@@ -72,6 +72,8 @@ def discover_src_vms():
 		print("UNABLE TO CONNECT TO VMWARE...")
 		print("")
 		bottle.abort(500, "Unable to connect to VMware...")
+
+	discovered = [] # vms of this discovery.  we will remove the vm's from 'vms' later if they are not in this array.
 	datacenters = vmware.get_datacenters()
 	for dc_key, dc_name in datacenters.iteritems():
 		src_vm_list = vmware.get_registered_vms(datacenter=dc_name)
@@ -108,16 +110,12 @@ def discover_src_vms():
 			elif '32-bit' in vms[vm_id]['src_type'].lower():
 				vms[vm_id]['src_os_arch'] = 32
 
-			##pprint.pprint(properties)
-			#print("Name: %s" % vms[vm_id]['src_name'])
-			#print("Path: %s" % vms[vm_id]['src_path'])
-			#print("Memory: %s" % vms[vm_id]['src_memory'])
-			#print("CPU: %s" % vms[vm_id]['src_cpus'])
-			#print("Type: %s" % vms[vm_id]['src_type'])
-			#print("Disks:")
-			#for disk in vms[vm_id]['src_disks']:
-			#	print(" - %s : %s (%s)" % (disk['label'], disk['path'], disk['type']))
-			#print("")
+			discovered.append(vm_id)
+
+	# loop through the 'vms' and remove any that were not discovered in this pass...
+	for vm_id in vms.keys():
+		if vm_id not in discovered:
+			del vms[vm_id] # no longer a valid VM, so remove it...
 
 	### Update the running.conf file
 	conf.set('STATE', 'vms', json.dumps(vms))

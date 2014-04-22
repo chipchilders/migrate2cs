@@ -28,9 +28,10 @@ $ yum install python-pip git
 ```
 
 
-### Install pysphere
+### Install pysphere and cherrypy
 ``` bash
 $ pip install pysphere
+$ pip install cherrypy
 ```
 
 
