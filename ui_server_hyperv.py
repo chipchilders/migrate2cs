@@ -4,7 +4,7 @@
 ##  INSTALL DEPENDANCIES
 ## ----------------------
 ## $ pip install bottle
-## $ pip install rocket
+## $ pip install rocket or cherrypy
 ##
 ## Author: Will Stevens <wstevens@cloudops.com>
 
@@ -19,7 +19,7 @@ def index():
 
 # start the server
 bottle.run(
-	server='rocket',
+	server='cherrypy',
 	host='0.0.0.0',
 	port=8787,
 	reloader=True,
