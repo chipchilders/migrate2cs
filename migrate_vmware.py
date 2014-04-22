@@ -45,7 +45,7 @@ def export_vm(vm_id):
 	vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
 	cmd = 'ovftool -o --powerOffSource -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
 		vms[vm_id]['clean_name'],
-		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'), 
+		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 		conf.get('VMWARE', 'endpoint'),
 		vms[vm_id]['src_dc'],
@@ -56,8 +56,21 @@ def export_vm(vm_id):
 		output = subprocess.check_output(cmd, shell=True)
 		log.info('Running the ovftool...\n%s' % (output))
 	except subprocess.CalledProcessError, e:
-		log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
-		conf.set('STATE', 'migrate_error', 'True')
+		log.info('Initial export attempt failed.  Trying a different export format...')
+		# since the exports have been inconsistent, if the first fails, try this method.
+		cmd = 'ovftool -o --powerOffSource -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
+			vms[vm_id]['clean_name'],
+			conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
+			conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
+			conf.get('VMWARE', 'endpoint'),
+			vms[vm_id]['src_dc'],
+			vms[vm_id]['src_path'].replace(' ', '')
+		)
+		try:
+			output = subprocess.check_output(cmd, shell=True)
+		except subprocess.CalledProcessError, e:
+			log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
+			conf.set('STATE', 'migrate_error', 'True')
 	if not conf.getboolean('STATE', 'migrate_error'):
 		log.info('Finished exporting %s' % (vms[vm_id]['src_name']))
 		vms[vm_id]['state'] = 'exported'
