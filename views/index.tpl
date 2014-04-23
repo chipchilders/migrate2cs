@@ -482,7 +482,7 @@
                 <span class="vm_select_label">Select</span>
                 <input class="checkbox" type="checkbox" /><label class="checkbox_label"></label>
               </span>
-              <div class="vm_content">
+              <div class="vm_content" style="display:none;">
                 <div class="left">
                 </div>
                 <div class="right">

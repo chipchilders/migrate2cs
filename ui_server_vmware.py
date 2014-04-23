@@ -116,6 +116,8 @@ def discover_src_vms():
 	for vm_id in vms.keys():
 		if vm_id not in discovered:
 			del vms[vm_id] # no longer a valid VM, so remove it...
+			if vm_id in order: # remove the vm from the order list as well if it exists...
+				order.remove(vm_id)
 
 	### Update the running.conf file
 	conf.set('STATE', 'vms', json.dumps(vms))
