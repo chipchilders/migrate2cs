@@ -80,7 +80,7 @@ def discover_src_vms():
 	discovered = [] # vms of this discovery.  we will remove the vm's from 'vms' later if they are not in this array.
 	datacenters = vmware.get_datacenters()
 	for dc_key, dc_name in datacenters.iteritems():
-		src_vm_list = vmware.get_registered_vms(datacenter=dc_name)
+		src_vm_list = vmware.get_registered_vms(datacenter=dc_name, advanced_filters={'config.template':False})
 		for vm_path in src_vm_list:
 			src_vm = vmware.get_vm_by_path(vm_path)
 			properties = src_vm.get_properties()
@@ -117,7 +117,7 @@ def discover_src_vms():
 			discovered.append(vm_id)
 
 			with open(conf.get('VMWARE', 'log_file'), 'a') as f:
-				f.write('VM: %s (%s)' % (vms[vm_id]['src_name'], vm_id))
+				f.write('VM: %s (%s)\n' % (vms[vm_id]['src_name'], vm_id))
 				f.write(pprint.pformat(properties))
 				f.write('\n\n')
 
