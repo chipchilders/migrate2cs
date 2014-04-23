@@ -18,6 +18,7 @@ from ui_common import *
 
 conf = ConfigParser()
 conf.add_section('VMWARE')
+conf.set('VMWARE', 'log_file', './logs/vmware_api.log')
 conf.add_section('WEBSERVER')
 conf.set('WEBSERVER', 'debug', 'False')
 # read in config files if they exist
@@ -73,6 +74,9 @@ def discover_src_vms():
 		print("")
 		bottle.abort(500, "Unable to connect to VMware...")
 
+	with open(conf.get('VMWARE', 'log_file'), 'a') as f:
+		f.write('\n\nDISCOVERING VMWARE...\n')
+
 	discovered = [] # vms of this discovery.  we will remove the vm's from 'vms' later if they are not in this array.
 	datacenters = vmware.get_datacenters()
 	for dc_key, dc_name in datacenters.iteritems():
@@ -111,6 +115,11 @@ def discover_src_vms():
 				vms[vm_id]['src_os_arch'] = 32
 
 			discovered.append(vm_id)
+
+			with open(conf.get('VMWARE', 'log_file'), 'a') as f:
+				f.write('VM: %s (%s)' % (vms[vm_id]['src_name'], vm_id))
+				f.write(pprint.pformat(properties))
+				f.write('\n\n')
 
 	# loop through the 'vms' and remove any that were not discovered in this pass...
 	for vm_id in vms.keys():

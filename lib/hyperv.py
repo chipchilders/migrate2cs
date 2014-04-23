@@ -2,6 +2,7 @@
 
 from ConfigParser import ConfigParser
 import os
+import sys
 import winrm
 
 # setup the conf object and set default values...

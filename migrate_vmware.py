@@ -16,6 +16,7 @@ if sys.version_info < (2, 7):
 # setup the conf object and set default values...
 conf = ConfigParser()
 conf.add_section('VMWARE')
+conf.set('VMWARE', 'log_file', './logs/vmware_api.log')
 
 # read in config files if they exists
 conf.read(['./settings.conf', './running.conf'])
