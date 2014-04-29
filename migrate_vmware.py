@@ -144,7 +144,7 @@ def split_ova(vm_id):
 				split_base = None
 
 				# get the values we care about for this iteration
-				disk_el = tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns)[i]
+				disk_el = tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns)[index]
 				disk_id = disk_el.attrib.get('{%(ovf)s}diskId' % ns, None)
 				file_id = disk_el.attrib.get('{%(ovf)s}fileRef' % ns, None)
 				file_nm = None
