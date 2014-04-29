@@ -139,19 +139,6 @@ def discover_src_vms():
 		conf.write(f) # update the file to include the changes we have made
 	return vms, order
 
-def export_to_ova(vm):
-	conf.read(['./running.conf'])
-	clean_user = conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21')
-	clean_pass = conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21')
-	cmd = 'ovftool -tt=OVA "vi://%s:%s@%s/%s?ds=%s" %s' % (
-		clean_user, 
-		clean_pass,
-		conf.get('VMWARE', 'endpoint'),
-		vm['src_dc'],
-		vm['src_path'].replace(' ', ''),
-		'~/ovas'
-	)
-
 
 # migration page
 @bottle.route('/')

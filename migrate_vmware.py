@@ -56,9 +56,14 @@ def export_vm(vm_id):
 	)
 	output = ''
 	try:
-		output = subprocess.check_output(cmd, shell=True)
-		log.info('Running the ovftool...\n%s' % (output))
-	except subprocess.CalledProcessError, e:
+		#output = subprocess.check_output(cmd, shell=True)
+		#log.info('Running the ovftool...\n%s' % (output))
+		log.info('Running the ovftool...')
+		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
+		for line in iter(p.stdout.readline, b''):
+		    log.info(line)
+		p.communicate() # close p.stdout, wait for the subprocess to exit
+	except:
 		log.info('Initial export attempt failed.  Trying a different export format...')
 		# since the exports have been inconsistent, if the first fails, try this method.
 		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
