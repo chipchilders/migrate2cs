@@ -35,6 +35,10 @@ if not conf.has_option('VMWARE', 'username'):
 if not conf.has_option('VMWARE', 'password'):
 	sys.exit("Config required in settings.conf: [VMWARE] -> password")
 
+# make sure we have an nfs mount point
+if not conf.has_section('FILESERVER') or not conf.has_option('FILESERVER', 'nfs_mount'):
+	sys.exit("Config required in settings.conf: [FILESERVER] -> nfs_mount")
+
 
 # add server logging
 log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
