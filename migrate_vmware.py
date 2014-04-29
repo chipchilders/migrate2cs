@@ -76,9 +76,14 @@ def export_vm(vm_id):
 			vms[vm_id]['src_path'].replace(' ', '')
 		)
 		try:
-			output = subprocess.check_output(cmd, shell=True)
-		except subprocess.CalledProcessError, e:
-			log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], e.output))
+			#output = subprocess.check_output(cmd, shell=True)
+		#except subprocess.CalledProcessError, e:
+			p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
+			for line in iter(p.stdout.readline, b''):
+			    log.info(line)
+			p.communicate() # close p.stdout, wait for the subprocess to exit
+		except:
+			log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], str(sys.exc_info())))
 			conf.set('STATE', 'migrate_error', 'True')
 	if not conf.getboolean('STATE', 'migrate_error'):
 		# we have the resulting OVA file.  if there are multi disks, split them...
@@ -190,8 +195,14 @@ def split_ova(vm_id):
 				ret = subprocess.call(cmd, shell=True)
 
 				## apparently the namespaces need to be exactly as specified and can't be re-saved.  replace the Envelope.  no id passed...
+				ns_str = ''
+				for k, v in ns.items():
+					if k == 'ns':
+						ns_str = '%s xmlns="%s"' % (ns_str, v)
+					else:
+						ns_str = '%s xmlns:%s="%s"' % (ns_str, k, v)
 				cmd = "perl -pi -e 's,<Envelope.*>,%s,g' %s" % (
-					'<Envelope xmlns="http://schemas.dmtf.org/ovf/envelope/1" xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData" xmlns:vmw="http://www.vmware.com/schema/ovf" xmlns:vssd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">',
+					'<Envelope%s>' % (ns_str),
 					split_ofv_file)
 				ret = subprocess.call(cmd, shell=True)
 
