@@ -138,7 +138,7 @@ def split_ova(vm_id):
 			src_dom = ET.parse(src_ovf_file)
 			src_tree = src_dom.getroot()
 
-			for i in xrange(len(src_tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns))):
+			for index in xrange(len(src_tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns))):
 				dom = ET.parse(src_ovf_file)
 				tree = dom.getroot()
 				split_base = None
@@ -195,8 +195,8 @@ def split_ova(vm_id):
 				ret = subprocess.call(cmd, shell=True)
 				if ret == 0:
 					log.info('created %s.ova' % (split_base))
-					if len(vms[vm_id]['src_disks']) > i:
-						vms[vm_id]['src_disks'][i]['ova'] = '%s.ova' % (split_base)
+					if len(vms[vm_id]['src_disks']) > index:
+						vms[vm_id]['src_disks'][index]['ova'] = '%s.ova' % (split_base)
 						conf.set('STATE', 'vms', json.dumps(vms))
 						with open('running.conf', 'wb') as f:
 							conf.write(f) # update the file to include the changes we have made
