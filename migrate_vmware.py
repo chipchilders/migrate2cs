@@ -42,6 +42,7 @@ log.setLevel(logging.INFO)
 conf.set('STATE', 'migrate_error', 'False')
 
 def export_vm(vm_id):
+	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
 	vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
@@ -110,6 +111,7 @@ def export_vm(vm_id):
 
 def split_ova(vm_id):
 	split_ok = True
+	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	## this script is designed to work with Python 2.5+, so we are not using anything from ElementTree 1.3, only 1.2...
 	## this is important in order to support CentOS.
@@ -234,16 +236,19 @@ def split_ova(vm_id):
 
 def import_vm(vm_id):
 	# import the vm
+	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('IMPORTING %s' % (vms[vm_id]['src_name']))
 
 def launch_vm(vm_id):
 	# launch the new vm
+	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('LAUNCHING %s' % (vms[vm_id]['src_name']))
 
 # run the actual migration
 def do_migration():
+	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	migrate = json.loads(conf.get('STATE', 'migrate'))
 	for vm_id in migrate[:]: # makes a copy of the list so we can delete from the original

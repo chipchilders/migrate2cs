@@ -140,9 +140,7 @@ def discover_account():
 @bottle.route('/vms/save', method='POST')
 def save_vms():
 	if bottle.request.params.vms:
-		print('saving...')
-		pprint.pprint(json.dumps(json.loads(bottle.request.params.vms)))
-		conf.set('STATE', 'vms', json.dumps(json.loads(bottle.request.params.vms)))
+		conf.set('STATE', 'vms', bottle.request.params.vms)
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
 		return 'ok'
