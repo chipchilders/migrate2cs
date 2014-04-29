@@ -83,8 +83,9 @@ def export_vm(vm_id):
 			with open('running.conf', 'wb') as f:
 				conf.write(f) # update the file to include the changes we have made
 			split_ok = split_ova(vm_id)
-			conf.read(['./running.conf'])
-			vms = json.loads(conf.get('STATE', 'vms'))
+			if split_ok:
+				conf.read(['./running.conf'])
+				vms = json.loads(conf.get('STATE', 'vms'))
 		elif len(vms[vm_id]['src_disks']) == 1:
 			vms[vm_id]['src_disks'][0]['ova'] = '%s.ova' % (vms[vm_id]['clean_name'])
 
@@ -194,7 +195,7 @@ def split_ova(vm_id):
 				ret = subprocess.call(cmd, shell=True)
 				if ret == 0:
 					log.info('created %s.ova' % (split_base))
-					if i in vms[vm_id]['src_disks']:
+					if len(vms[vm_id]['src_disks']) > i:
 						vms[vm_id]['src_disks'][i]['ova'] = '%s.ova' % (split_base)
 						conf.set('STATE', 'vms', json.dumps(vms))
 						with open('running.conf', 'wb') as f:
