@@ -256,7 +256,7 @@ def import_vm(vm_id):
 			type_search = 'Other (64-bit)'
 			if vms[vm_id]['src_os_arch'] == 32:
 				type_search = 'Other (32-bit)'
-			type_ids = cs_api.request(dict({'command':'listOsTypes'}))
+			type_ids = cs.request(dict({'command':'listOsTypes'}))
 			if type_ids and 'ostype' in type_ids:
 				for os_type_obj in type_ids['ostype']:
 					if os_type_obj['description'] == type_search:
