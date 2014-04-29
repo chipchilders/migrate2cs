@@ -215,6 +215,12 @@ def split_ova(vm_id):
 					log.info('created %s.ova' % (split_base))
 					if len(vms[vm_id]['src_disks']) > index:
 						vms[vm_id]['src_disks'][index]['ova'] = '%s.ova' % (split_base)
+						vms[vm_id]['src_disks'][index]['url'] = '%s://%s:%s%s%s' % (
+							'https' if conf.get('FILESERVER', 'port') == '443' else 'http',
+							conf.get('FILESERVER', 'host'),
+							conf.get('FILESERVER', 'port'),
+							conf.get('FILESERVER', 'base_uri'),
+							'%s.ova' % (split_base))
 						conf.set('STATE', 'vms', json.dumps(vms))
 						with open('running.conf', 'wb') as f:
 							conf.write(f) # update the file to include the changes we have made
@@ -239,6 +245,84 @@ def import_vm(vm_id):
 	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('IMPORTING %s' % (vms[vm_id]['src_name']))
+	imported = False
+
+	# make sure we have a complete config before we start
+	if ('cs_zone' in vms[vm_id] and 'cs_domain' in vms[vm_id] and 'cs_account' in vms[vm_id] and 'cs_service_offering' in vms[vm_id]):
+		# manage the disks
+		if len(vms[vm_id]['src_disks']) > 0:
+			# get the possible os type ids
+			os_type = ''
+			type_search = 'Other (64-bit)'
+			if vms[vm_id]['src_os_arch'] == 32:
+				type_search = 'Other (32-bit)'
+			type_ids = cs_api.request(dict({'command':'listOsTypes'}))
+			if type_ids and 'ostype' in type_ids:
+				for os_type_obj in type_ids['ostype']:
+					if os_type_obj['description'] == type_search:
+						os_type = os_type_obj['id']
+						break
+
+
+			# register the first disk as a template since it is the root disk
+			root_name = os.path.splitext(vms[vm_id]['src_disks'][0]['ova'])[0]
+			log.info('Creating template for root volume %s...' % (root_name))
+			template = cs.request(dict({
+				'command':'registerTemplate',
+				'name':root_name,
+				'displaytext':root_name,
+				'format':'OVA',
+				'hypervisor':'VMware',
+				'ostypeid':os_type,
+				'url':vms[vm_id]['src_disks'][0]['url'],
+				'zoneid':vms[vm_id]['cs_zone'],
+				'domainid':vms[vm_id]['cs_domain'],
+				'account':vms[vm_id]['cs_account']
+			}))
+			if template:
+				log.info('Template %s created...' % (template['template'][0]['id']))
+				vms[vm_id]['cs_template_id'] = template['template'][0]['id']
+				imported = True
+			else:
+				log.error('Failed to create template.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
+
+			# check if there are data disks
+			if len(vms[vm_id]['src_disks']) > 1:
+				# upload the remaining disks as volumes
+				for i,v in enumerate(vms[vm_id]['src_disks'][1:]):
+					index = i+1
+					imported = False # reset because we have more to do...
+					disk_name = os.path.splitext(vms[vm_id]['src_disks'][index])[0]
+					log.info('Uploading data volume %s...' % (disk_name))
+					volume = cs.request(dict({
+						'command':'uploadVolume',
+						'name':disk_name,
+						'format':'OVA',
+						'url':vms[vm_id]['src_disks'][index]['url'],
+						'zoneid':vms[vm_id]['cs_zone'],
+						'domainid':vms[vm_id]['cs_domain'],
+						'account':vms[vm_id]['cs_account']
+					}))
+					if volume and 'jobresult' in volume and 'volume' in volume['jobresult']:
+						volume_id = volume['jobresult']['volume']['id']
+						log.info('Volume %s uploaded...' % (volume_id))
+						if 'cs_volumes' in vms[vm_id]:
+							vms[vm_id]['cs_volumes'].append(volume_id)
+						else:
+							vms[vm_id]['cs_volumes'] = [volume_id]
+						imported = True
+					else:
+						log.error('Failed to upload the volume.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
+	else:
+		log.error('We are missing CCP data for %s' % (vms[vm_id]['src_name']))
+
+	if imported:
+		### Update the running.conf file
+		log.info('Finished importing %s' % (vms[vm_id]['src_name']))
+		vms[vm_id]['state'] = 'imported'
+		conf.set('STATE', 'vms', json.dumps(vms))
+		with open('running.conf', 'wb') as f:
+			conf.write(f) # update the file to include the changes we have made
 
 def launch_vm(vm_id):
 	# launch the new vm
