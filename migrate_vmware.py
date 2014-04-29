@@ -292,7 +292,7 @@ def import_vm(vm_id):
 				for i,v in enumerate(vms[vm_id]['src_disks'][1:]):
 					index = i+1
 					imported = False # reset because we have more to do...
-					disk_name = os.path.splitext(vms[vm_id]['src_disks'][index])[0]
+					disk_name = os.path.splitext(vms[vm_id]['src_disks'][index]['ova'])[0]
 					log.info('Uploading data volume %s...' % (disk_name))
 					volume = cs.request(dict({
 						'command':'uploadVolume',
