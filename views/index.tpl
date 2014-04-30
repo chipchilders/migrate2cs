@@ -304,6 +304,7 @@
 
       // validate and migrate selected VMs
       function migrate_selected_vms() {
+        $('.migrate').attr('disabled','disabled');
         var ready = true;
         var migrate = [];
         $('#notice').html('');
@@ -408,6 +409,7 @@
                 clearInterval(poll_interval);
                 $('.log_output').removeClass('active');
                 $('#ui-accordion-accordion-panel-0 .overlay').hide();
+                $('.migrate').removeAttr('disabled');
               }
             }
           },
