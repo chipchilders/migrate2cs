@@ -403,7 +403,7 @@
           url: "/migration/log",
           success: function(data) {
             if (data != '') {
-              $('.log_output').val(data);
+              $('.log_output').focus().val('').val(data);
               if (ends_with(data, '~~~ ~~~ ~~~ ~~~\n')) {
                 clearInterval(poll_interval);
                 $('.log_output').removeClass('active');
