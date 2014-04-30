@@ -84,7 +84,7 @@ def export_vm(vm_id):
 			    log.info(line)
 			p.communicate() # close p.stdout, wait for the subprocess to exit
 		except:
-			log.error('Could not export %s... \n%s' % (vms[vm_id]['src_name'], str(sys.exc_info())))
+			log.error('Could not export %s \n%s' % (vms[vm_id]['src_name'], str(sys.exc_info())))
 			conf.set('STATE', 'migrate_error', 'True')
 	if not conf.getboolean('STATE', 'migrate_error'):
 		# we have the resulting OVA file.  if there are multi disks, split them...
@@ -149,6 +149,7 @@ def split_ova(vm_id):
 		if src_ovf_file:
 			src_dom = ET.parse(src_ovf_file)
 			src_tree = src_dom.getroot()
+			log.info('VM has multiple disks.  Splitting them into their own OVA files...')
 
 			for index in xrange(len(src_tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns))):
 				dom = ET.parse(src_ovf_file)
@@ -212,7 +213,7 @@ def split_ova(vm_id):
 					conf.get('FILESERVER', 'nfs_mount'), src_ova_base, split_base, split_base, split_base, file_nm)
 				ret = subprocess.call(cmd, shell=True)
 				if ret == 0:
-					log.info('created %s.ova' % (split_base))
+					log.info('Created %s.ova' % (split_base))
 					if len(vms[vm_id]['src_disks']) > index:
 						vms[vm_id]['src_disks'][index]['ova'] = '%s.ova' % (split_base)
 						vms[vm_id]['src_disks'][index]['url'] = '%s://%s:%s%s%s' % (
@@ -280,7 +281,7 @@ def import_vm(vm_id):
 				'account':vms[vm_id]['cs_account']
 			}))
 			if template:
-				log.info('Template %s created...' % (template['template'][0]['id']))
+				log.info('Template %s created' % (template['template'][0]['id']))
 				vms[vm_id]['cs_template_id'] = template['template'][0]['id']
 				imported = True
 			else:
@@ -305,7 +306,7 @@ def import_vm(vm_id):
 					}))
 					if volume and 'jobresult' in volume and 'volume' in volume['jobresult']:
 						volume_id = volume['jobresult']['volume']['id']
-						log.info('Volume %s uploaded...' % (volume_id))
+						log.info('Volume %s uploaded' % (volume_id))
 						if 'cs_volumes' in vms[vm_id]:
 							vms[vm_id]['cs_volumes'].append(volume_id)
 						else:
