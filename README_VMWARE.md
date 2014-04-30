@@ -40,7 +40,7 @@ $ pip install cherrypy
 ``` bash
 $ git clone git@bitbucket.org:cloudops_code/migrate2cs.git
 ```
-(no need to actually install anything, you can run the code inplace)
+(no need to actually install the code, you can run it inplace)
 
 
 ### Install the OVFtool

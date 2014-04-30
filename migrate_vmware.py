@@ -335,7 +335,7 @@ def launch_vm(vm_id):
 
 	poll = 1
 	has_error = False
-	while not has_error or vms[vm_id]['state'] != 'launched':
+	while not has_error and vms[vm_id]['state'] != 'launched':
 		# check if the template has finished downloading...
 		template = cs.request(dict({
 			'command':'listTemplates', 
@@ -396,7 +396,7 @@ def launch_vm(vm_id):
 									log.error('Failed to attach volume %s' % (volume_id))
 									has_error = True
 							if not has_error:
-								log.info('Rebooting the VM to make the attached disks visible...')
+								log.info('Rebooting the VM to make the attached volumes visible...')
 								reboot = cs.request(dict({
 									'command':'rebootVirtualMachine', 
 									'id':cs_vm['jobresult']['virtualmachine']['id']}))

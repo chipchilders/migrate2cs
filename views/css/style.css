@@ -214,7 +214,7 @@ label {
 	padding: 5px;
 }
 .log_output.active {
-	background:#ffffff url("/static/views/images/ajax-loader.gif") no-repeat 99% 2%;
+	background:#ffffff url("/static/views/images/ajax-loader.gif") no-repeat 97.5% 2%;
 }
 
 
