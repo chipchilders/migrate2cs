@@ -2,6 +2,8 @@
 % Will Stevens
 % 2014/03/20
 
+==> OUTDATED - This integration is currently not functional.  Upgrade to UI core required...
+
 
 INSTALL
 =======

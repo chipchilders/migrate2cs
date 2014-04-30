@@ -86,7 +86,10 @@ def discover_src_vms():
 	for dc_key, dc_name in datacenters.iteritems():
 		src_vm_list = vmware.get_registered_vms(datacenter=dc_name, advanced_filters={'config.template':False})
 		for vm_path in src_vm_list:
-			src_vm = vmware.get_vm_by_path(vm_path)
+			try:
+				src_vm = vmware.get_vm_by_path(vm_path)
+			except:
+				continue
 			properties = src_vm.get_properties()
 			vm_id = hashlib.sha1(properties['name']+"|"+properties['path']).hexdigest()
 			if vm_id not in order:

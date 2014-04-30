@@ -9,7 +9,8 @@ INSTALL
 
 On VMware Machine
 -----------------
-TBD
+Requires a user to run the migration.
+Review the `settings.conf` section for details.
 
 
 On Migration Machine
@@ -40,6 +41,12 @@ $ pip install cherrypy
 $ git clone git@bitbucket.org:cloudops_code/migrate2cs.git
 ```
 (no need to actually install anything, you can run the code inplace)
+
+
+### Install the OVFtool
+``` bash
+$ cd migrate2cs/extras; chmod u+x VMware-ovftool-3.5.0-1274719-lin.x86_64.sh; ./VMware-ovftool-3.5.0-1274719-lin.x86_64.sh
+```
 
 
 
