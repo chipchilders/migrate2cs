@@ -382,7 +382,7 @@ def launch_vm(vm_id):
 
 						# attach the data volumes to it if there are data volumes
 						if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0:
-							for volume_id in vms[vm_id]['cs_volume']:
+							for volume_id in vms[vm_id]['cs_volumes']:
 								log.info('Attaching volume %s...' % (volume_id))
 								attach = cs.request(dict({
 									'command':'attachVolume',
