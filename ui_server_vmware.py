@@ -105,8 +105,8 @@ def discover_src_vms():
 			if 'state' not in vms[vm_id]:
 				vms[vm_id]['state'] = ''
 
-			if 'src_disks' not in vms[vm_id] or 
-					('src_disks' in vms[vm_id] and len(vms[vm_id]['src_disks']) != len(properties['disks'])):
+			if 'src_disks' not in vms[vm_id] or (
+					'src_disks' in vms[vm_id] and len(vms[vm_id]['src_disks']) != len(properties['disks'])):
 				vms[vm_id]['state'] = ''
 				vms[vm_id]['src_disks'] = []
 				for disk in properties['disks']:
