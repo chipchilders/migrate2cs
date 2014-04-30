@@ -1,19 +1,23 @@
-% VMware to CloudStack Migration
-% Will Stevens
+% VMware to CloudPlatform Migration Tool
+% Will Stevens <wstevens@cloudops.com>
 % 2014/04/30
 
 
 INSTALL & SETUP
 ===============
 
-On VMware Machine
------------------
-- Requires a VMware user to access the environment in order to do migrations.
-- Review the configuration setup details below in regards to the `./settings.conf` file.
+The Source VMware Environment
+-----------------------------
+- We should not have to change anything in the source VMware environment.
+- The tool requires a user to be configured who has access to the whole VMware environment in order do the migration.
+- Review the configuration setup details for the `./settings.conf` file.
 
 
-On Migration Machine
---------------------
+The Migration Machine
+---------------------
+- The migration tool is configured on this machine and the migrations are run from this machine.
+- A server will run on this machine which will serve web based migration UI for migrating to CloudPlatform.
+
 ### Install EPEL
 ``` bash
 $ cd /tmp
@@ -34,7 +38,7 @@ $ pip install argparse
 ```
 
 ### Get the source code
-- To simplify later instructions, I will just assume you are in the '~/' directory when you run this.
+- To simplify later instructions, I will just assume you will set this up in the '~/' directory.
 
 ``` bash
 $ cd ~/
@@ -50,8 +54,8 @@ $ chmod u+x VMware-ovftool-3.5.0-1274719-lin.x86_64.sh
 $ ./VMware-ovftool-3.5.0-1274719-lin.x86_64.sh
 ```
 
-### Setup OVA file location
-- This is the location where the exported OVA files will be copied to and then served from to CloudStack.
+### Setup where the OVA files will be stored
+- This is the location where the exported OVA files will be copied to and then served from for CloudPlatform to access.
 - It is recommended that you use something like an NFS mount point to ensure you have enough space.
 - I will detail the commands assuming you are using an NSF share at '/mnt/share'.
 - The example `./settings.conf` file shows what the config would be if the files where saved to an 'ovas' directory in this mount.
@@ -62,9 +66,9 @@ $ mount -t nfs NFS_IP_OR_HOST:/PATH/TO/NFS/SHARE /mnt/share
 $ mkdir -p /mnt/share/ovas
 ```
 
-### Setup the file server to server the OVAs
-- This file server is how the templates and volumes are accessed by CloudStack.
-- This server MUST serve on either port 80 or 443 for CloudStack to accept it.
+### Setup a file server to serve the OVAs
+- This file server is how the templates and volumes are accessed by CloudPlatform.
+- This server MUST serve on either port 80 or 443 for CloudPlatform to accept it.
 - I have included a basic file server that can be used by dropping it in the OVAs directory and starting it.
 
 ``` bash
@@ -92,8 +96,8 @@ password = Passw0rd1!
 ## log_file = ./logs/vmware_api.log
 
 
-[CLOUDSTACK]
-### REQUIRED: this is the details for the CloudStack/CloudPlatform which is being migrated to
+[CloudPlatform]
+### REQUIRED: this is the details for the CloudPlatform/CloudPlatform which is being migrated to
 host = 10.223.130.192:8080
 
 # these keys are for the 'admin' user so he can act on behalf of other users
@@ -109,11 +113,11 @@ secret_key = an96yMkcWrfyexdJ-McpeUdsQtWp_QEZlDk7jbbBcf1yDn3UNmF5J4XDYaDswn5klp0
 
 
 [FILESERVER]
-### REQUIRED: this is where the OVA files will be copied to and then served from for CloudStack to access
+### REQUIRED: this is where the OVA files will be copied to and then served from for CloudPlatform to access
 host = 10.223.130.146
 username = root
 password = password
-port = 80                      ; this needs to be 80 or 443 for CloudStack to use it
+port = 80                      ; this needs to be 80 or 443 for CloudPlatform to use it
 base_uri = /                   ; the file name will be appended to this path in the url
 files_path = /mnt/share/ovas   ; this is where the files will get saved to and served from
 
@@ -125,8 +129,8 @@ files_path = /mnt/share/ovas   ; this is where the files will get saved to and s
 ```
 
 
-HOWTO USE THE PACKAGE
-=====================
+HOWTO USE THE TOOL
+==================
 - Once everything is installed and the `./settings.conf` file has been configured, you can use the package.
 
 Start the migration UI server
@@ -139,17 +143,19 @@ $ nohup python ui_server_vmware.py &
 Using the migration UI
 ----------------------
 - Navigate to: http://MIGRATION_MACHINE_IP:8787
-- On load, it will discover both the VMware and CloudStack enironments, so it may take some time to load.
-- When the page loads, the CloudStack details will be available in the dropdowns and the VMware VMs will be listed below.
+- On load, it will discover both the VMware and CloudPlatform enironments, so it may take some time to load.
+- When the page loads, the CloudPlatform details will be available in the dropdowns and the VMware VMs will be listed below.
 - You can click on the VM name to expand it and get more detail.
-- To apply a specific CloudStack configuration to a group of VMs, select the VMs and the CloudStack details from the dropdowns and click on the 'Apply to Selected VMs' button.
-- You can now see the CloudStack details in the expanded view of the VMs.
-- To begin the migration, make sure there is CloudStack details applied to all selected VMs and then click on 'Migrate Selected VMs'.
+- To apply a specific CloudPlatform configuration to a group of VMs, select the VMs and the CloudPlatform details from the dropdowns and click on the 'Apply to Selected VMs' button.
+- You can now see the CloudPlatform details in the expanded view of the VMs.
+- To begin the migration, make sure there is CloudPlatform details applied to all selected VMs and then click on 'Migrate Selected VMs'.
 - The 'Select and Migrate VMs' section will collapse and the 'Migration Progress' section will open up.
 - The textarea in this section will update with the migration progress.
 - Under the textarea is a list of logs from previous migrations which can be downloaded.
 - The 'Recent Logs' section is not updated after each run.  In order to get an updated list, you need to reload the page.
 - Clicking on a link in the 'Recent Logs' section will start downloading that log.
+- The tool currently only supports VMs with SCSI controllers.
+- The tool currently supports VMs with multiple disks (root disk and data disks).
 
 
 
