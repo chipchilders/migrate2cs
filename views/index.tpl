@@ -345,6 +345,7 @@
                 },
                 contentType: "application/json; charset=utf-8",
                 beforeSend: function(xhr, settings) {
+                  $('.log_output').addClass('active');
                   $('.log_output').val('... Waiting for initial log data ...');
                   $('#ui-accordion-accordion-panel-0 .overlay').show();
                   $('#accordion').accordion('option', 'active', 1);
@@ -358,6 +359,7 @@
                   }, 5000);
                 },
                 error: function(xhr, status, err) {
+                  $('.log_output').removeClass('active');
                   $('#notice').removeClass().addClass('error').html('Failed to start the migration process...<br />'+status+': '+err);
                   $('#notice').show();
                   $('#ui-accordion-accordion-panel-0 .overlay').hide();
@@ -394,6 +396,7 @@
               $('.log_output').val(data);
               if (ends_with(data, '~~~ ~~~ ~~~ ~~~\n')) {
                 clearInterval(poll_interval);
+                $('.log_output').removeClass('active');
                 $('#ui-accordion-accordion-panel-0 .overlay').hide();
               }
             }
