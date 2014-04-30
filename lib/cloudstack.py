@@ -117,7 +117,7 @@ class CloudStack(object):
 			# if the request was an async call, then poll for the result...
 			if output and 'jobid' in output.keys() and \
 					('jobstatus' not in output.keys() or ('jobstatus' in output.keys() and output['jobstatus'] == 0)):
-				print('%s: polling...' % (poll))
+				#print('%s: polling...' % (poll))
 				time.sleep(self.async_poll_interval)
 				output = self.request(dict({'command':'queryAsyncJobResult', 'jobId':output['jobid']}), poll+1)
 
