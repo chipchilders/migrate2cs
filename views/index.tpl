@@ -94,6 +94,16 @@
           $(vm_el).find('h4').text(vm_obj['src_name']);
           $(vm_el).find('.vm_select .checkbox').attr('id', vm_id);
           $(vm_el).find('.vm_select .checkbox_label').attr('for', vm_id);
+
+          if (vm_obj['state'] != '') {
+            $(vm_el)
+              .removeClass('exported')
+              .removeClass('imported')
+              .removeClass('launched')
+              .removeClass('migrated')
+              .addClass(vm_obj['state']);
+              $(vm_el).find('.vm_state').text(vm_obj['state']);
+          }
           
           // build vm details
           var details = '';
@@ -481,6 +491,7 @@
             
             <div id="vm_tpl" class="vm">
               <h4></h4>
+              <span class="vm_state"></span>
               <span class="vm_select">
                 <span class="vm_select_label">Select</span>
                 <input class="checkbox" type="checkbox" /><label class="checkbox_label"></label>

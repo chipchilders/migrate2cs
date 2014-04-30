@@ -154,17 +154,31 @@ label {
 	position:relative;
 	font-size:90%;
 }
+.vm_list .vm.exported,
+.vm_list .vm.imported,
+.vm_list .vm.launched,
+.vm_list .vm.migrated {
+	background:#ddd;
+}
 .vm_list h4 {
 	padding-left:.5em;
-	margin-top:1.5em;
-	margin-bottom:1em;
+	margin-top:1.25em;
+	padding-top:.25em;
+	margin-bottom:.5em;
 	border-bottom:2px solid #0073EA;
 	font-size:110%;
 	cursor:pointer;
 }
+.vm_list .vm_state {
+	position:absolute;
+	top:.1em;
+	right:8em;
+	font-weight:bold;
+	text-transform:uppercase;
+}
 .vm_list .vm_select {
 	position:absolute;
-	top:-.2em;
+	top:.1em;
 	right:.1em;
 	font-weight:bold;
 }
@@ -186,6 +200,9 @@ label {
 }
 .vm_list select {
 	width:20em;
+}
+.vm_list .vm_content {
+	padding-bottom:.5em;
 }
 
 
