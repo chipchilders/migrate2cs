@@ -21,6 +21,7 @@ conf.add_section('VMWARE')
 conf.set('VMWARE', 'log_file', './logs/vmware_api.log')
 conf.add_section('WEBSERVER')
 conf.set('WEBSERVER', 'debug', 'False')
+conf.set('WEBSERVER', 'port', '8787')
 # read in config files if they exist
 conf.read(['./settings.conf', './running.conf'])
 
@@ -36,8 +37,8 @@ if not conf.has_option('VMWARE', 'password'):
 	sys.exit("Config required in settings.conf: [VMWARE] -> password")
 
 # make sure we have an nfs mount point
-if not conf.has_section('FILESERVER') or not conf.has_option('FILESERVER', 'nfs_mount'):
-	sys.exit("Config required in settings.conf: [FILESERVER] -> nfs_mount")
+if not conf.has_section('FILESERVER') or not conf.has_option('FILESERVER', 'files_path'):
+	sys.exit("Config required in settings.conf: [FILESERVER] -> files_path")
 
 
 # add server logging
@@ -187,6 +188,6 @@ def get_migration_log():
 bottle.run(
 	server='cherrypy',
 	host='0.0.0.0',
-	port=8787,
-	reloader=True,
+	port=conf.getint('WEBSERVER', 'port'),
+	reloader=False,
 	debug=conf.getboolean('WEBSERVER', 'debug'))

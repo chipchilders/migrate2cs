@@ -5,7 +5,7 @@
 ## ----------------------
 ## $ pip install argparse
 ## $ pip install bottle
-## $ pip install rocket
+## $ pip install cherrypy
 ##
 ## Author: Will Stevens <wstevens@cloudops.com>
 
@@ -13,7 +13,7 @@ import argparse
 import bottle
 import os
 import sys
-# depends on 'rocket' server
+# depends on 'cherrypy' server
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--include", type=str, help="require the file name to include this string")
@@ -47,8 +47,8 @@ def serve_file(filepath):
 
 # start the server
 bottle.run(
-	server='rocket', 
+	server='cherrypy', 
 	host='0.0.0.0', 
-	port=8787, 
+	port=80, 
 	reloader=False, 
 	debug=False)

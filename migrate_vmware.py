@@ -140,14 +140,14 @@ def split_ova(vm_id):
 	src_ova_file = '%s.ova' % (vms[vm_id]['clean_name'])
 	src_ova_base = vms[vm_id]['clean_name']
 	cmd = 'cd %s; rm -rf %s; mkdir %s; tar xvf %s -C %s' % (
-		conf.get('FILESERVER', 'nfs_mount'), src_ova_base, src_ova_base, src_ova_file, src_ova_base)
+		conf.get('FILESERVER', 'files_path'), src_ova_base, src_ova_base, src_ova_file, src_ova_base)
 	ret = subprocess.call(cmd, shell=True)
 
 	if ret == 0:
 		src_ovf_file = None
-		for f in os.listdir('%s/%s' % (conf.get('FILESERVER', 'nfs_mount'), src_ova_base)):
+		for f in os.listdir('%s/%s' % (conf.get('FILESERVER', 'files_path'), src_ova_base)):
 			if f.endswith('.ovf'):
-				src_ovf_file = '%s/%s/%s' % (conf.get('FILESERVER', 'nfs_mount'), src_ova_base, f)
+				src_ovf_file = '%s/%s/%s' % (conf.get('FILESERVER', 'files_path'), src_ova_base, f)
 
 		if src_ovf_file:
 			src_dom = ET.parse(src_ovf_file)
@@ -189,7 +189,7 @@ def split_ova(vm_id):
 					if c.attrib.get('{%(vmw)s}key' % ns, None) == 'tools.toolsUpgradePolicy':
 						c.set('{%(vmw)s}value' % ns, 'manual')
 				
-				split_ofv_file = '%s/%s/%s.ovf' % (conf.get('FILESERVER', 'nfs_mount'), src_ova_base, split_base)
+				split_ofv_file = '%s/%s/%s.ovf' % (conf.get('FILESERVER', 'files_path'), src_ova_base, split_base)
 				with open(split_ofv_file, 'w') as f:
 					f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
 					dom.write(f, encoding='utf-8')
@@ -213,7 +213,7 @@ def split_ova(vm_id):
 				ret = subprocess.call(cmd, shell=True)
 
 				cmd = 'cd %s/%s; rm -rf ../%s.ova; tar cvf ../%s.ova %s.ovf %s' % (
-					conf.get('FILESERVER', 'nfs_mount'), src_ova_base, split_base, split_base, split_base, file_nm)
+					conf.get('FILESERVER', 'files_path'), src_ova_base, split_base, split_base, split_base, file_nm)
 				ret = subprocess.call(cmd, shell=True)
 				if ret == 0:
 					log.info('Created %s.ova' % (split_base))
@@ -236,10 +236,10 @@ def split_ova(vm_id):
 					split_ok = False
 		else:
 			log.error('failed to locate the source ovf file %s/%s/%s.ovf' % (
-				conf.get('FILESERVER', 'nfs_mount'), src_ova_base, src_ova_base))
+				conf.get('FILESERVER', 'files_path'), src_ova_base, src_ova_base))
 			split_ok = False
 	else:
-		log.error('failed to extract the ova file %s/%s' % (conf.get('FILESERVER', 'nfs_mount'), src_ova_file))
+		log.error('failed to extract the ova file %s/%s' % (conf.get('FILESERVER', 'files_path'), src_ova_file))
 		split_ok = False
 	return split_ok
 
