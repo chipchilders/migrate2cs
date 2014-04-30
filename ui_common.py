@@ -120,6 +120,15 @@ def cs_discover_account_resources(account):
 	return obj
 
 
+def get_log_list():
+	""" Outputs a link for each file in the logs directory. """
+	output = '<h2>Recent Logs</h2><div style="font-family:monospace; padding:10px;">'
+	for file_name in os.listdir('./logs'):
+		if os.path.isfile(file_name) and '.md' not in file_name:
+			output = '%s<a href="/log/%s">%s</a><br />' % (output, file_name, file_name)
+	return output+'</div>'
+
+
 ###  COMMON BOTTLE ROUTES  ###
 
 # get resources associated with an account
@@ -147,6 +156,16 @@ def save_vms():
 		return 'ok'
 	else:
 		return bottle.abort(500, 'Unable to save the VMs on the server.')
+
+
+# serve log files
+@bottle.route('/log/<filepath:path>')
+def serve_log(filepath):
+	""" Download the requested log file. """
+	bottle.response.set_header("Content-Type", "application/octet-stream")
+	bottle.response.set_header("Content-Disposition", "attachment; filename=\""+filepath+"\";" )
+	bottle.response.set_header("Content-Transfer-Encoding", "binary")
+	return bottle.static_file(filepath, root='./logs/', download=True)
 
 
 # serve a favicon.ico so the pages do not return a 404 for the /favicon.ico path in the browser.

@@ -156,6 +156,7 @@ def index():
 	vms, order = discover_src_vms()
 	variables['vms'] = json.dumps(vms)
 	variables['vm_order'] = json.dumps(order)
+	variables['log_list'] = get_log_list()
 	return dict(variables)
 
 

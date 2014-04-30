@@ -217,6 +217,9 @@ label {
 	background:#ffffff url("/static/views/images/ajax-loader.gif") no-repeat 97.5% 2%;
 }
 
+.recent_logs {
+	padding-top:2em;
+}
 
 .button_wrapper {
 	padding-top:2em;

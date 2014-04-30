@@ -404,7 +404,8 @@
           url: "/migration/log",
           success: function(data) {
             if (data != '') {
-              $('.log_output').focus().val('').val(data);
+              $('.log_output').val(data);
+              $('.log_output').scrollTop($('.log_output')[0].scrollHeight);
               if (ends_with(data, '~~~ ~~~ ~~~ ~~~\n')) {
                 clearInterval(poll_interval);
                 $('.log_output').removeClass('active');
@@ -537,9 +538,10 @@
         <div class="section">
           <!--<button class="edit_migration">Migration Details</button>-->
           <textarea class="log_output"></textarea>
-          <div class="clear button_wrapper">
+          <!--<div class="clear button_wrapper">
             <button class="download_log">Download Full Log</button>
-          </div>
+          </div>-->
+          <div class="recent_logs">{{!log_list}}</div>
         </div>
       </div>
     </div>
