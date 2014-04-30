@@ -123,7 +123,7 @@ def cs_discover_account_resources(account):
 
 def get_log_list():
 	""" Outputs a link for each file in the logs directory. """
-	output = '<h2>Recent Logs</h2><div style="font-family:monospace; padding:10px;">'
+	output = '<h2>Recent Logs</h2><div style="font-family:monospace; padding:5px;">'
 	file_list = os.listdir('./logs')
 	file_list.sort(reverse=True)
 	for file_name in file_list:

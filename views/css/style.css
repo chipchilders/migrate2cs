@@ -220,6 +220,9 @@ label {
 .recent_logs {
 	padding-top:2em;
 }
+.recent_logs h2 {
+	margin-bottom:.25em;
+}
 
 .button_wrapper {
 	padding-top:2em;
