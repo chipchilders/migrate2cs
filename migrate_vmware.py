@@ -59,7 +59,7 @@ def export_vm(vm_id):
 	try:
 		#output = subprocess.check_output(cmd, shell=True)
 		#log.info('Running the ovftool...\n%s' % (output))
-		log.info('Running the ovftool...')
+		log.info('Running ovftool...')
 		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
 		for line in iter(p.stdout.readline, b''):
 		    log.info(line)
@@ -90,6 +90,7 @@ def export_vm(vm_id):
 		# we have the resulting OVA file.  if there are multi disks, split them...
 		split_ok = True
 		if len(vms[vm_id]['src_disks']) > 1:
+			log.info('Processing multi disk ova...')
 			conf.set('STATE', 'vms', json.dumps(vms))
 			with open('running.conf', 'wb') as f:
 				conf.write(f) # update the file to include the changes we have made
@@ -98,6 +99,7 @@ def export_vm(vm_id):
 				conf.read(['./running.conf'])
 				vms = json.loads(conf.get('STATE', 'vms'))
 		elif len(vms[vm_id]['src_disks']) == 1:
+			log.info('VM only has a root disk')
 			vms[vm_id]['src_disks'][0]['ova'] = '%s.ova' % (vms[vm_id]['clean_name'])
 
 		if split_ok:
