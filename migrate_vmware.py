@@ -151,7 +151,7 @@ def split_ova(vm_id):
 		if src_ovf_file:
 			src_dom = ET.parse(src_ovf_file)
 			src_tree = src_dom.getroot()
-			log.info('VM has multiple disks.  Splitting them into their own OVA files...')
+			log.info('Splitting the ova file.  Creating an ova file for each disk...')
 
 			for index in xrange(len(src_tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns))):
 				dom = ET.parse(src_ovf_file)

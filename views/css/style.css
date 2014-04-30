@@ -195,6 +195,7 @@ label {
 	font-size:85% !important;
 	font-family:monospace !important;
 	padding: 5px;
+	background:#ffffff url("/static/views/images/ajax-loader.gif") no-repeat right top;
 }
 
 
