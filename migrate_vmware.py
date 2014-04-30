@@ -10,6 +10,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 if sys.version_info < (2, 7):
 	import lib.legacy_subprocess
 	subprocess.check_output = lib.legacy_subprocess.check_output
@@ -367,6 +368,7 @@ def launch_vm(vm_id):
 					# create a VM instance using the template
 					cmd = dict({
 						'command':'deployVirtualMachine',
+						'name':vms[vm_id]['clean_name'],
 						'displayname':vms[vm_id]['clean_name'],
 						'templateid':vms[vm_id]['cs_template_id'],
 						'serviceofferingid':vms[vm_id]['cs_service_offering'],
