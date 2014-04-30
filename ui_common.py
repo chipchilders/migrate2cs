@@ -2,6 +2,7 @@ from ConfigParser import ConfigParser
 import bottle
 import json
 from lib.cloudstack import CloudStack, cs
+import os
 import pprint
 import subprocess
 
