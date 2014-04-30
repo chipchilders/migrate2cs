@@ -332,6 +332,7 @@ def launch_vm(vm_id):
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('LAUNCHING %s' % (vms[vm_id]['src_name']))
 
+	poll = 1
 	has_error = False
 	while not has_error or vms[vm_id]['state'] != 'launched':
 		# check if the template has finished downloading...
@@ -421,6 +422,7 @@ def launch_vm(vm_id):
 		poll = poll + 1
 		time.sleep(10)
 	if not has_error:
+		log.info('SUCCESSFULLY MIGRATED %s' % (vms[vm_id]['src_name']))
 		conf.read(['./running.conf'])
 		vms = json.loads(conf.get('STATE', 'vms'))
 		vms[vm_id]['state'] = 'migrated'
