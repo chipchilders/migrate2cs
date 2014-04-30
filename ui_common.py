@@ -124,8 +124,10 @@ def cs_discover_account_resources(account):
 def get_log_list():
 	""" Outputs a link for each file in the logs directory. """
 	output = '<h2>Recent Logs</h2><div style="font-family:monospace; padding:10px;">'
-	for file_name in os.listdir('./logs'):
-		if os.path.isfile(file_name) and '.md' not in file_name:
+	file_list = os.listdir('./logs')
+	file_list.sort(reverse=True)
+	for file_name in file_list:
+		if os.path.isfile('./logs/'+file_name) and '.md' not in file_name:
 			output = '%s<a href="/log/%s">%s</a><br />' % (output, file_name, file_name)
 	return output+'</div>'
 
