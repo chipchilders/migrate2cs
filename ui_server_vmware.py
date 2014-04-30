@@ -95,23 +95,27 @@ def discover_src_vms():
 				vms[vm_id] = {}
 
 			vms[vm_id]['id'] = vm_id
-			vms[vm_id]['state'] = ''
 			vms[vm_id]['src_dc'] = dc_name
 			vms[vm_id]['src_name'] = properties['name'] 
 			vms[vm_id]['src_path'] = properties['path']
 			vms[vm_id]['src_memory'] = properties['memory_mb']
 			vms[vm_id]['src_cpus'] = properties['num_cpu']
 			vms[vm_id]['src_type'] = properties['guest_full_name']
-			vms[vm_id]['src_disks'] = []
 			vms[vm_id]['src_status'] = src_vm.get_status(basic_status=True)
+			if 'state' not in vms[vm_id]:
+				vms[vm_id]['state'] = ''
 
-			for disk in properties['disks']:
-				vms[vm_id]['src_disks'].append({
-					'label':disk['label'], 
-					'path':disk['descriptor'], 
-					'type':disk['device']['type'],
-					'size':disk['capacity']
-				})
+			if 'src_disks' not in vms[vm_id] or 
+					('src_disks' in vms[vm_id] and len(vms[vm_id]['src_disks']) != len(properties['disks'])):
+				vms[vm_id]['state'] = ''
+				vms[vm_id]['src_disks'] = []
+				for disk in properties['disks']:
+					vms[vm_id]['src_disks'].append({
+						'label':disk['label'], 
+						'path':disk['descriptor'], 
+						'type':disk['device']['type'],
+						'size':disk['capacity']
+					})
 
 			if '64-bit' in vms[vm_id]['src_type'].lower():
 				vms[vm_id]['src_os_arch'] = 64
