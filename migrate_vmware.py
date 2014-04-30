@@ -380,7 +380,7 @@ def launch_vm(vm_id):
 						cmd['networkids'] = vms[vm_id]['cs_network']
 					cs_vm = cs.request(cmd) # launch the VM
 					if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
-						log.info('VM %s started' % (vms[vm_id]['src_name']))
+						log.info('VM %s launched' % (vms[vm_id]['src_name']))
 
 						# attach the data volumes to it if there are data volumes
 						if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0:
@@ -420,10 +420,11 @@ def launch_vm(vm_id):
 						has_error = True
 			else:
 				log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['src_name'], template['template'][0]['status']))
-		log.info('... polling ...')
-		poll = poll + 1
-		time.sleep(10)
-	if not has_error:
+		if vms[vm_id]['state'] != 'launched':
+			log.info('... polling ...')
+			poll = poll + 1
+			time.sleep(10)
+	if not has_error: # complete the migration...
 		log.info('SUCCESSFULLY MIGRATED %s' % (vms[vm_id]['src_name']))
 		conf.read(['./running.conf'])
 		vms = json.loads(conf.get('STATE', 'vms'))
