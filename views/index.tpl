@@ -435,7 +435,7 @@
             // remove existing vms from list
             $('.vm_list .vm:not(#vm_tpl)').each(function() {
               $(this).remove();
-            }
+            });
             build_vm_list(); // add the vms again
           }
         });
