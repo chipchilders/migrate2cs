@@ -169,6 +169,21 @@ def split_ova(vm_id):
 						file_nm = f.attrib.get('{%(ovf)s}href' % ns, None)
 				split_base = os.path.splitext(file_nm)[0]
 
+				# get the controller type
+				controller_id = None
+				controller_type = None
+				for i in tree.findall('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection/{%(ns)s}Item' % ns):
+					if int(i.find('{%(rasd)s}ResourceType' % ns).text) == DISK_RESOURCE_TYPE:
+						if i.find('{%(rasd)s}HostResource' % ns).text.endswith(disk_id):
+							controller_id = i.find('{%(rasd)s}Parent' % ns).text
+				for i in tree.findall('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection/{%(ns)s}Item' % ns):
+					if i.find('{%(rasd)s}InstanceID' % ns).text == controller_id:
+						controller_type = i.find('{%(rasd)s}Description' % ns).text
+
+				if 'IDE' in controller_type:
+					log.info('Disk %s is using an IDE controller' % (split_base))
+					log.warning('The IDE controller is not fully supported.  The VM will need to be manually verified to be working after the migration completes.')
+
 				# loop through the different elements and remove the elements we don't want
 				for d in tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns):
 					if d.attrib.get('{%(ovf)s}diskId' % ns, None) != disk_id:
@@ -229,17 +244,25 @@ def split_ova(vm_id):
 						with open('running.conf', 'wb') as f:
 							conf.write(f) # update the file to include the changes we have made
 					else:
-						log.error('could not save the ova to the vms disk due to index out of bound')
+						log.error('Could not save the ova to the vms disk due to index out of bound')
 						split_ok = False
 				else:
-					log.error('failed to create %s.ova' % (split_base))
+					log.error('Failed to create %s.ova' % (split_base))
 					split_ok = False
 		else:
-			log.error('failed to locate the source ovf file %s/%s/%s.ovf' % (
+			log.error('Failed to locate the source ovf file %s/%s/%s.ovf' % (
 				conf.get('FILESERVER', 'files_path'), src_ova_base, src_ova_base))
 			split_ok = False
+		# remove the directory we used to create the new OVA files
+		cmd = 'cd %s; rm -rf %s' % (conf.get('FILESERVER', 'files_path'), src_ova_base)
+		ret = subprocess.call(cmd, shell=True)
+		if ret == 0:
+			log.info('Successfully removed temporary disk files')
+		else:
+			log.warning('Failed to remove temporary disk files.  Consider cleaning up the directory "%s" after the migration.' % (
+				conf.get('FILESERVER', 'files_path')))
 	else:
-		log.error('failed to extract the ova file %s/%s' % (conf.get('FILESERVER', 'files_path'), src_ova_file))
+		log.error('Failed to extract the ova file %s/%s' % (conf.get('FILESERVER', 'files_path'), src_ova_file))
 		split_ok = False
 	return split_ok
 
@@ -426,9 +449,19 @@ def launch_vm(vm_id):
 			poll = poll + 1
 			time.sleep(10)
 	if not has_error: # complete the migration...
-		log.info('SUCCESSFULLY MIGRATED %s to %s' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
 		conf.read(['./running.conf'])
 		vms = json.loads(conf.get('STATE', 'vms'))
+
+		# clean up ova files
+		cmd = 'cd %s; rm -f %s.ova %s-disk*' % (conf.get('FILESERVER', 'files_path'), vms[vm_id]['clean_name'], vms[vm_id]['clean_name'])
+		ret = subprocess.call(cmd, shell=True)
+		if ret == 0:
+			log.info('Successfully removed the imported OVA files')
+		else:
+			log.warning('Failed to remove the imported OVA files.  Consider cleaning up the directory "%s" after the migration.' % (
+				conf.get('FILESERVER', 'files_path')))
+
+		# save the updated state
 		vms[vm_id]['state'] = 'migrated'
 		conf.set('STATE', 'vms', json.dumps(vms))
 		migrate = json.loads(conf.get('STATE', 'migrate'))
@@ -436,6 +469,7 @@ def launch_vm(vm_id):
 		conf.set('STATE', 'migrate', json.dumps(migrate))
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
+		log.info('SUCCESSFULLY MIGRATED %s to %s' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
 
 # run the actual migration
 def do_migration():

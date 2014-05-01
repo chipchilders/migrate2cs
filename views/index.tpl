@@ -224,6 +224,7 @@
               });
             } else { // advanced network
               $('#dst_network').prop('disabled', false);
+              $('#dst_network').val(''); // reset to 'select'
               $('#dst_network').children().each(function(index) {
                 var net_id = $(this).val();
                 if (net_id != '') {
