@@ -456,7 +456,7 @@ def launch_vm(vm_id):
 		cmd = 'cd %s; rm -f %s.ova %s-disk*' % (conf.get('FILESERVER', 'files_path'), vms[vm_id]['clean_name'], vms[vm_id]['clean_name'])
 		ret = subprocess.call(cmd, shell=True)
 		if ret == 0:
-			log.info('Successfully removed the imported OVA files')
+			log.info('Successfully removed the imported OVA files from the file server')
 		else:
 			log.warning('Failed to remove the imported OVA files.  Consider cleaning up the directory "%s" after the migration.' % (
 				conf.get('FILESERVER', 'files_path')))
