@@ -161,6 +161,20 @@ def save_vms():
 		return bottle.abort(500, 'Unable to save the VMs on the server.')
 
 
+# pull the vms from the running config and refresh the UI
+@bottle.route('/vms/refresh')
+def refresh_vms():
+	conf.read(['./running.conf'])
+	vms = json.loads(conf.get('STATE', 'vms'))
+	return json.dumps(vms)
+
+
+# grab the logs to update in the UI
+@bottle.route('/vms/refresh')
+def refresh_logs():
+	return get_log_list()
+
+
 # serve log files
 @bottle.route('/log/<filepath:path>')
 def serve_log(filepath):

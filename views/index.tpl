@@ -407,6 +407,8 @@
               $('.log_output').val(data);
               $('.log_output').scrollTop($('.log_output')[0].scrollHeight);
               if (ends_with(data, '~~~ ~~~ ~~~ ~~~\n')) {
+                refresh_vms();
+                refresh_logs();
                 clearInterval(poll_interval);
                 $('.log_output').removeClass('active');
                 $('#ui-accordion-accordion-panel-0 .overlay').hide();
@@ -420,6 +422,31 @@
             setTimeout(function() {
               $('#notice').fadeOut();
             }, 5000);
+          }
+        });
+      }
+
+      // refresh the vms list
+      function refresh_vms() {
+        $.ajax({
+          url: "/vms/refresh",
+          success: function(data) {
+            vms = JSON.parse(data);
+            // remove existing vms from list
+            $('.vm_list .vm:not(#vm_tpl)').each(function() {
+              $(this).remove();
+            }
+            build_vm_list(); // add the vms again
+          }
+        });
+      }
+
+      // refresh the logs list
+      function refresh_logs() {
+        $.ajax({
+          url: "/logs/refresh",
+          success: function(data) {
+            $('.recent_logs').html(data);
           }
         });
       }
