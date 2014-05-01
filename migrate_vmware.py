@@ -249,6 +249,7 @@ def import_vm(vm_id):
 	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('IMPORTING %s' % (vms[vm_id]['src_name']))
+	log.info('Renaming VM from %s to %s to comply with CloudPlatform...' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
 	imported = False
 
 	# make sure we have a complete config before we start
@@ -321,7 +322,7 @@ def import_vm(vm_id):
 
 	if imported:
 		### Update the running.conf file
-		log.info('Finished importing %s' % (vms[vm_id]['src_name']))
+		log.info('Finished importing %s' % (vms[vm_id]['clean_name']))
 		vms[vm_id]['state'] = 'imported'
 		conf.set('STATE', 'vms', json.dumps(vms))
 		with open('running.conf', 'wb') as f:
@@ -331,7 +332,7 @@ def launch_vm(vm_id):
 	# launch the new vm
 	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
-	log.info('LAUNCHING %s' % (vms[vm_id]['src_name']))
+	log.info('LAUNCHING %s' % (vms[vm_id]['clean_name']))
 
 	poll = 1
 	has_error = False
@@ -357,14 +358,14 @@ def launch_vm(vm_id):
 							# check the state of the volume
 							if volume['volume'][0]['state'] != 'Uploaded' and volume['volume'][0]['state'] != 'Ready':
 								log.info('%s: %s is waiting for volume %s, current state: %s' % 
-									(poll, vms[vm_id]['src_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
+									(poll, vms[vm_id]['clean_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
 								volumes_ready = False
 							else:
 								volumes_ready = volumes_ready and True # propogates False if any are False
 				# everything should be ready for this VM to be started, go ahead...
 				if volumes_ready:
-					log.info('%s: %s is ready to launch' % (poll, vms[vm_id]['src_name']))
-					log.info('Launching VM %s...' % (vms[vm_id]['src_name']))
+					log.info('%s: %s is ready to launch' % (poll, vms[vm_id]['clean_name']))
+					log.info('Launching VM %s...' % (vms[vm_id]['clean_name']))
 					# create a VM instance using the template
 					cmd = dict({
 						'command':'deployVirtualMachine',
@@ -380,7 +381,7 @@ def launch_vm(vm_id):
 						cmd['networkids'] = vms[vm_id]['cs_network']
 					cs_vm = cs.request(cmd) # launch the VM
 					if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
-						log.info('VM %s launched' % (vms[vm_id]['src_name']))
+						log.info('VM %s launched' % (vms[vm_id]['clean_name']))
 
 						# attach the data volumes to it if there are data volumes
 						if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0:
@@ -413,19 +414,19 @@ def launch_vm(vm_id):
 							with open('running.conf', 'wb') as f:
 								conf.write(f) # update the file to include the changes we have made
 					elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
-						log.error('%s failed to start!  ERROR: %s' % (vms[vm_id]['src_name'], cs_vm['jobresult']['errortext']))
+						log.error('%s failed to start!  ERROR: %s' % (vms[vm_id]['clean_name'], cs_vm['jobresult']['errortext']))
 						has_error = True
 					else:
-						log.error('%s did not Start or Error correctly...' % (vms[vm_id]['src_name']))
+						log.error('%s did not Start or Error correctly...' % (vms[vm_id]['clean_name']))
 						has_error = True
 			else:
-				log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['src_name'], template['template'][0]['status']))
+				log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
 		if vms[vm_id]['state'] != 'launched':
 			log.info('... polling ...')
 			poll = poll + 1
 			time.sleep(10)
 	if not has_error: # complete the migration...
-		log.info('SUCCESSFULLY MIGRATED %s' % (vms[vm_id]['src_name']))
+		log.info('SUCCESSFULLY MIGRATED %s to %s' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
 		conf.read(['./running.conf'])
 		vms = json.loads(conf.get('STATE', 'vms'))
 		vms[vm_id]['state'] = 'migrated'

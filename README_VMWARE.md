@@ -1,5 +1,5 @@
 % VMware to CloudPlatform Migration Tool
-% Will Stevens <wstevens@cloudops.com>
+% Will Stevens
 % 2014/04/30
 
 
@@ -152,10 +152,9 @@ Using the migration UI
 - The 'Select and Migrate VMs' section will collapse and the 'Migration Progress' section will open up.
 - The textarea in this section will update with the migration progress.
 - Under the textarea is a list of logs from previous migrations which can be downloaded.
-- The 'Recent Logs' section is not updated after each run.  In order to get an updated list, you need to reload the page.
 - Clicking on a link in the 'Recent Logs' section will start downloading that log.
 - The tool currently only supports VMs with SCSI controllers.
-- The tool currently supports VMs with multiple disks (root disk and data disks).
+- The tool supports VMs with multiple disks (root disk and data disks).
 
 
 

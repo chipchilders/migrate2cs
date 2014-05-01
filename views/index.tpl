@@ -214,6 +214,14 @@
           if (zone_id != '') {
             if (cs_objs['accounts'][display]['zones'][zone_id]['network'] == 'basic') { // basic network
               $('#dst_network').prop('disabled', true);
+              $('#dst_network').children().each(function(index) {
+                var net_id = $(this).val();
+                if (net_id != '') {
+                  if (cs_objs['accounts'][display]['networks'][net_id]['zone'] == zone_id) {
+                    $('#dst_network').val($(this).val());
+                  }
+                }
+              });
             } else { // advanced network
               $('#dst_network').prop('disabled', false);
               $('#dst_network').children().each(function(index) {
@@ -259,8 +267,13 @@
                 vms[vm_id]['cs_network_display'] = $('#dst_network option:selected').text();
                 vms[vm_id]['cs_network'] = $('#dst_network option:selected').val();
               } else {
-                $(vm).find('.dst_network').text('Use Default');
-                $(vm).find('.dst_network_id').text('');
+                if ($('#dst_network option:selected').val() == '') {
+                  $(vm).find('.dst_network').text('Use Default');
+                  $(vm).find('.dst_network_id').text('');
+                } else {
+                  $(vm).find('.dst_network').text($('#dst_network option:selected').text());
+                  $(vm).find('.dst_network_id').text('');
+                }
               }
             });
             // the vms object has been updated.  save the updated vms object to the server.

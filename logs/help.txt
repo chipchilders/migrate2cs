@@ -1,0 +1,6 @@
+MIGRATION STAGES
+----------------
+'exported' - The VM has been exported and the OVA is ready for import.
+'imported' - The VM has been imported into CloudPlatform and the upload process has been kicked off.
+'launched' - Transition state after the VM is launched in CloudPlatform and before the migration has been cleaned up.
+'migrated' - The VM has been successfully migrated to CloudPlatform and is up and running.
