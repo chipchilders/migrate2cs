@@ -182,8 +182,8 @@ def split_ova(vm_id):
 						controller_type = i.find('{%(rasd)s}Description' % ns).text
 
 				if 'IDE' in controller_type:
-					log.info('Disk %s is using an IDE controller' % (split_base))
-					log.warning('The IDE controller is not fully supported.  The VM will need to be manually verified to be working after the migration completes.')
+					log.info('Disk %s is using an IDE controller\n' % (split_base))
+					log.warning('The IDE controller is not fully supported.  The VM will need to be manually verified to be working after the migration completes.\n')
 
 				# loop through the different elements and remove the elements we don't want
 				for d in tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns):
@@ -471,7 +471,7 @@ def launch_vm(vm_id):
 		conf.set('STATE', 'migrate', json.dumps(migrate))
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
-		log.info('SUCCESSFULLY MIGRATED %s to %s' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
+		log.info('SUCCESSFULLY MIGRATED %s to %s\n\n' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
 
 # run the actual migration
 def do_migration():
