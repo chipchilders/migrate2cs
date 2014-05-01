@@ -170,7 +170,7 @@ def refresh_vms():
 
 
 # grab the logs to update in the UI
-@bottle.route('/vms/refresh')
+@bottle.route('/logs/refresh')
 def refresh_logs():
 	return get_log_list()
 
