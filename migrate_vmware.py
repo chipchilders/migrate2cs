@@ -102,7 +102,12 @@ def export_vm(vm_id):
 		elif len(vms[vm_id]['src_disks']) == 1:
 			log.info('VM only has a root disk')
 			vms[vm_id]['src_disks'][0]['ova'] = '%s.ova' % (vms[vm_id]['clean_name'])
-
+			vms[vm_id]['src_disks'][0]['url'] = '%s://%s:%s%s%s' % (
+							'https' if conf.get('FILESERVER', 'port') == '443' else 'http',
+							conf.get('FILESERVER', 'host'),
+							conf.get('FILESERVER', 'port'),
+							conf.get('FILESERVER', 'base_uri'),
+							'%s.ova' % (vms[vm_id]['clean_name']))
 		if split_ok:
 			log.info('Finished exporting %s' % (vms[vm_id]['src_name']))
 			vms[vm_id]['state'] = 'exported'
@@ -272,7 +277,8 @@ def import_vm(vm_id):
 	conf.read(['./running.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	log.info('IMPORTING %s' % (vms[vm_id]['src_name']))
-	log.info('Renaming VM from %s to %s to comply with CloudPlatform...' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
+	if vms[vm_id]['src_name'] != vms[vm_id]['clean_name']:
+		log.info('Renaming VM from %s to %s to comply with CloudPlatform...' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
 	imported = False
 
 	# make sure we have a complete config before we start
