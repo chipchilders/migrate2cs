@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
+## Copyright (c) 2014 Citrix Systems, Inc. All Rights Reserved.
+## You may only reproduce, distribute, perform, display, or prepare derivative works of this file pursuant to a valid license from Citrix.
+
 ## ----------------------
 ##  INSTALL DEPENDANCIES
 ## ----------------------
 ## $ pip install bottle
 ## $ pip install rocket or cherrypy
 ##
-## Author: Will Stevens <wstevens@cloudops.com>
+## Author: Will Stevens
 
 from ui_common import *
 

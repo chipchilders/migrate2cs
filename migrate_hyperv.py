@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+## Copyright (c) 2014 Citrix Systems, Inc. All Rights Reserved.
+## You may only reproduce, distribute, perform, display, or prepare derivative works of this file pursuant to a valid license from Citrix.
+
 from ConfigParser import ConfigParser
 from lib.hyperv import HyperV # the class
 from lib.hyperv import hyperv # the connection

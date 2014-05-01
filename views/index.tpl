@@ -1,4 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- Copyright (c) 2014 Citrix Systems, Inc. All Rights Reserved. -->
+<!-- You may only reproduce, distribute, perform, display, or prepare derivative works of this file pursuant to a valid license from Citrix. -->
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+## Copyright (c) 2014 Citrix Systems, Inc. All Rights Reserved.
+## You may only reproduce, distribute, perform, display, or prepare derivative works of this file pursuant to a valid license from Citrix.
+
 from ConfigParser import ConfigParser
 from pysphere import VIServer
 from lib.cloudstack import cs
@@ -88,26 +91,19 @@ def export_vm(vm_id):
 			log.error('Could not export %s \n%s' % (vms[vm_id]['src_name'], str(sys.exc_info())))
 			conf.set('STATE', 'migrate_error', 'True')
 	if not conf.getboolean('STATE', 'migrate_error'):
-		# we have the resulting OVA file.  if there are multi disks, split them...
-		split_ok = True
+		# we have the resulting OVA file.  process the OVA file...
 		if len(vms[vm_id]['src_disks']) > 1:
 			log.info('Processing multi disk ova...')
-			conf.set('STATE', 'vms', json.dumps(vms))
-			with open('running.conf', 'wb') as f:
-				conf.write(f) # update the file to include the changes we have made
-			split_ok = split_ova(vm_id)
-			if split_ok:
-				conf.read(['./running.conf'])
-				vms = json.loads(conf.get('STATE', 'vms'))
 		elif len(vms[vm_id]['src_disks']) == 1:
-			log.info('VM only has a root disk')
-			vms[vm_id]['src_disks'][0]['ova'] = '%s.ova' % (vms[vm_id]['clean_name'])
-			vms[vm_id]['src_disks'][0]['url'] = '%s://%s:%s%s%s' % (
-							'https' if conf.get('FILESERVER', 'port') == '443' else 'http',
-							conf.get('FILESERVER', 'host'),
-							conf.get('FILESERVER', 'port'),
-							conf.get('FILESERVER', 'base_uri'),
-							'%s.ova' % (vms[vm_id]['clean_name']))
+			log.info('Processing single disk ova...')
+		conf.set('STATE', 'vms', json.dumps(vms))
+		with open('running.conf', 'wb') as f:
+			conf.write(f) # update the file to include the changes we have made
+		split_ok = True
+		split_ok = split_ova(vm_id)
+		if split_ok:
+			conf.read(['./running.conf'])
+			vms = json.loads(conf.get('STATE', 'vms'))
 		if split_ok:
 			log.info('Finished exporting %s' % (vms[vm_id]['src_name']))
 			vms[vm_id]['state'] = 'exported'
@@ -157,7 +153,7 @@ def split_ova(vm_id):
 		if src_ovf_file:
 			src_dom = ET.parse(src_ovf_file)
 			src_tree = src_dom.getroot()
-			log.info('Splitting the ova file.  Creating an ova file for each disk...')
+			log.info('Extracting and evaluating the ova file.  Creating a new ova file for each disk...')
 
 			for index in xrange(len(src_tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns))):
 				dom = ET.parse(src_ovf_file)

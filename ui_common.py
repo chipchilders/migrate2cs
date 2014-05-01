@@ -1,3 +1,6 @@
+## Copyright (c) 2014 Citrix Systems, Inc. All Rights Reserved.
+## You may only reproduce, distribute, perform, display, or prepare derivative works of this file pursuant to a valid license from Citrix.
+
 from ConfigParser import ConfigParser
 import bottle
 import json

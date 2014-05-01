@@ -1,5 +1,8 @@
 # check_output was only introduced in python 2.7, so this makes the code available in previous versions.
 
+## Copyright (c) 2014 Citrix Systems, Inc. All Rights Reserved.
+## You may only reproduce, distribute, perform, display, or prepare derivative works of this file pursuant to a valid license from Citrix.
+
 import subprocess
 def check_output(*popenargs, **kwargs):
     if 'stdout' in kwargs:
