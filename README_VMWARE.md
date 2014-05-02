@@ -171,6 +171,10 @@ Limitations and special considerations
 - The tool fully supports VMs with SCSI controllers.
 - The tool only partially supports VMs with IDE controllers.  The VM will import correctly, but it will crash on boot due to a problem locating the root partition.
 - The tool supports VMs with both single and multiple disks.
+- The tool supports VMs with spaces in the name ONLY if they show up in the OVFtool vm inventory list
+	- eg: vi://USER:PASSWORD@VMWARE_HOST/DATACENTER/vm
+- If the VM does not show up in the OVFtool vm inventory list, then a different export method is used.  This second attempt will only work if the VMs VMX Path does not have any spaces (other than the space between the datasource and the path).
+- If the VM does not show up in the OVFtool vm inventory list and the VMX Path has spaces, there is now way for the tool to export the VM.
 
 
 

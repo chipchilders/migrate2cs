@@ -65,12 +65,8 @@ def export_vm(vm_id):
 			log.info('Running the OVFtool (this will take a while)...\n%s' % (output))
 			output = subprocess.check_output(cmd, shell=True)
 			log.info('OVFtool output\n%s' % (output))
-			#log.info('Running ovftool...')
-			#p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
-			#for line in iter(p.stdout.readline, b''):
-			#    log.info(line)
-			#p.communicate() # close p.stdout, wait for the subprocess to exit
 		except:
+			log.info('OVFtool output\n%s' % (output))
 			log.info('Initial export attempt failed.  Trying a different export format...')
 			# since the exports have been inconsistent, if the first fails, try this method.
 			cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
@@ -84,14 +80,10 @@ def export_vm(vm_id):
 			)
 			try:
 				output = subprocess.check_output(cmd, shell=True)
-				log.info('Running ovftool...')
+				log.info('OVFtool output\n%s' % (output))
 			except subprocess.CalledProcessError, e:
-			#	p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
-			#	for line in iter(p.stdout.readline, b''):
-			#	    log.info(line)
-			#	p.communicate() # close p.stdout, wait for the subprocess to exit
-			#except:
-				log.error('Could not export %s \n%s' % (vms[vm_id]['src_name'], str(sys.exc_info())))
+				log.info('OVFtool output\n%s' % (output))
+				log.error('Could not export %s \n%s' % (vms[vm_id]['src_name'], e.output))
 				conf.read(['./running.conf'])
 				conf.set('STATE', 'migrate_error', 'True')
 				conf.set('STATE', 'vms', json.dumps(vms))
