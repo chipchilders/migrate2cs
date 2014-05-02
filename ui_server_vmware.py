@@ -156,7 +156,7 @@ def discover_src_vms():
 @bottle.view('index')
 def index():
 	variables = {}
-	conf.read('./running.conf'])
+	conf.read(['./running.conf'])
 	if not conf.getboolean('STATE', 'active_migration'):
 		open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # refresh the cs_request.log on reloads
 		open(conf.get('VMWARE', 'log_file'), 'w').close() # refresh the vmware_api.log on reloads
