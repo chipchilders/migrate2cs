@@ -15,7 +15,7 @@
       var vms = {{!vms}};
       var vm_order = {{!vm_order}};
       var poll_interval = null;
-      var active_migration = Boolean("{{active_migration}}");
+      var active_migration = {{active_migration}};
 
       $(function() {
         $('#accordion').accordion({

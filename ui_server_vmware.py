@@ -164,12 +164,12 @@ def index():
 		vms, order = discover_src_vms()
 		variables['vms'] = json.dumps(vms)
 		variables['vm_order'] = json.dumps(order)
-		variables['active_migration'] = conf.getboolean('STATE', 'active_migration')
+		variables['active_migration'] = conf.get('STATE', 'active_migration').lower()
 	else:
 		variables['cs_objs'] = json.dumps(json.loads(conf.get('STATE', 'cs_objs')))
 		variables['vms'] = vms = json.dumps(json.loads(conf.get('STATE', 'vms')))
 		variables['vm_order'] = json.dumps(json.loads(conf.get('STATE', 'vm_order')))
-		variables['active_migration'] = conf.getboolean('STATE', 'active_migration')
+		variables['active_migration'] = conf.get('STATE', 'active_migration').lower()
 	variables['log_list'] = get_log_list()
 	return dict(variables)
 
