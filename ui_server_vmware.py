@@ -194,8 +194,11 @@ def start_migration():
 def get_migration_log():
 	output = ''
 	conf.read(['./running.conf'])
-	with open(conf.get('VMWARE', 'log_file'), 'r') as f:
-		output = f.read()
+	try:
+		with open(conf.get('VMWARE', 'migration_log_file'), 'r') as f:
+			output = f.read()
+	except:
+		output = 'Log does not exist yet...'
 	return output
 
 # start the server
