@@ -478,7 +478,7 @@ def launch_vm(vm_id):
 							with open('running.conf', 'wb') as f:
 								conf.write(f) # update the file to include the changes we have made
 						else:
-							log.error('%s did not Start or Error correctly...' % (vms[vm_id]['clean_name']))
+							log.error('%s failed to start!  Check the "cs_request.log" for details...' % (vms[vm_id]['clean_name']))
 							has_error = True
 							conf.read(['./running.conf'])
 							conf.set('STATE', 'migrate_error', 'True')
