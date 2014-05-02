@@ -22,6 +22,7 @@ if sys.version_info < (2, 7):
 conf = ConfigParser()
 conf.add_section('VMWARE')
 conf.set('VMWARE', 'log_file', './logs/vmware_api.log')
+conf.set('VMWARE', 'max_virtual_hardware_version', '8')
 
 # read in config files if they exists
 conf.read(['./settings.conf', './running.conf'])
@@ -50,9 +51,12 @@ def export_vm(vm_id):
 	if not conf.getboolean('STATE', 'migrate_error'):
 		vms = json.loads(conf.get('STATE', 'vms'))
 		log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
-		vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
+		vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name']).strip('-')
+		if len(vms[vm_id]['clean_name']) > 63:
+			vms[vm_id]['clean_name'] = vms[vm_id]['clean_name'][:63]
 		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
-			'-o --powerOffSource --noSSLVerify --acceptAllEulas',
+			'-o --powerOffSource --noSSLVerify --acceptAllEulas --maxVirtualHardwareVersion=%s' % (
+				conf.get('VMWARE', 'max_virtual_hardware_version')),
 			vms[vm_id]['clean_name'],
 			conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 			conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
@@ -70,7 +74,8 @@ def export_vm(vm_id):
 			log.info('Initial export attempt failed.  Trying a different export format...')
 			# since the exports have been inconsistent, if the first fails, try this method.
 			cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
-				'-o --powerOffSource --noSSLVerify --acceptAllEulas',
+				'-o --powerOffSource --noSSLVerify --acceptAllEulas --maxVirtualHardwareVersion=%s' % (
+					conf.get('VMWARE', 'max_virtual_hardware_version')),
 				vms[vm_id]['clean_name'],
 				conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 				conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),

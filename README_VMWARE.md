@@ -98,6 +98,7 @@ password = Passw0rd1!
 
 ### OPTIONAL: these are defined in the code, change them as needed
 ## log_file = ./logs/vmware_api.log
+## max_virtual_hardware_version = 8
 
 
 [CloudPlatform]
@@ -175,6 +176,15 @@ Limitations and special considerations
 	- eg: vi://USER:PASSWORD@VMWARE_HOST/DATACENTER/vm
 - If the VM does not show up in the OVFtool vm inventory list, then a different export method is used.  This second attempt will only work if the VMs VMX Path does not have any spaces (other than the space between the datasource and the path).
 - If the VM does not show up in the OVFtool vm inventory list and the VMX Path has spaces, there is now way for the tool to export the VM.
+- When migrating from a more recent version of VMware to a previous version of VMware, you will need to specify the 'max_virtual_hardware_version' setting to reflect the destination VMware version.  The possible settings and the VMware versions they support are listed below.  The default setting is '8'...
+	- 10 - Supports: ESXi 5.5, Fusion 6.x, Workstation 10.x, Player 6.x
+	- 9 - Supports: ESXi 5.1, Fusion 5.x, Workstation 9.x, Player 5.x
+	- 8 - Supports: ESXi 5.0, Fusion 4.x, Workstation 8.x, Player 4.x
+	- 7 - Supports: ESXi/ESX 4.x, Fusion 3.x, Fusion 2.x, Workstation 7.x, Workstation 6.5.x, Player 3.x, Server 2.x
+	- 6 - Supports: Workstation 6.0.x
+	- 4 - Supports: ACE 2.x, ESX 3.x, Fusion 1.x, Player 2.x
+	- 3 and 4 - Supports: ACE 1.x, Lab Manager 2.x, Player 1.x, Server 1.x, Workstation 5.x, Workstation 4.x
+	- 3 - Supports: ESX 2.x, GSX Server 3.x
 
 
 
@@ -202,5 +212,6 @@ Migration state management
     - migrate - An array of VMs that are currently being migrated.
     - migrate_error - A boolean that tracks if the current migration has errors.
     - migration_timestamp - The timestamp associated with the last migration.
+    - active_migration - A boolean to specify if there is a migration currently happening.
 
 
