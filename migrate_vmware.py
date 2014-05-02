@@ -552,10 +552,9 @@ if __name__ == "__main__":
 		log.info('Finished with ERRORS!!!\n')
 	else:
 		log.info('ALL FINISHED!!!\n')
-
 	log.info('~~~ ~~~ ~~~ ~~~')
 	conf.set('STATE', 'active_migration', 'False')
-	conf.remove_option('STATE', 'migrate_error')
+	conf.set('STATE', 'migrate_error', 'False')
 	with open('running.conf', 'wb') as f:
 		conf.write(f) # update the file to include the changes we have made
 
