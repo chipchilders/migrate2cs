@@ -156,6 +156,7 @@ def discover_src_vms():
 @bottle.view('index')
 def index():
 	open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # refresh the cs_request.log on reloads
+	open(conf.get('VMWARE', 'log_file'), 'w').close() # refresh the vmware_api.log on reloads
 	variables = {}
 	variables['cs_objs'] = json.dumps(cs_discover_accounts())
 	vms, order = discover_src_vms()

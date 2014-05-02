@@ -378,7 +378,7 @@ def import_vm(vm_id):
 			with open('running.conf', 'wb') as f:
 				conf.write(f) # update the file to include the changes we have made
 		else:
-			log.warning('Fail to import %s' % (vms[vm_id]['clean_name'])
+			log.warning('Fail to import %s' % (vms[vm_id]['clean_name']))
 	else:
 		log.info('An error has occured.  Skipping the import process...')
 
