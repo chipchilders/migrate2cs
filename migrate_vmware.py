@@ -47,71 +47,80 @@ conf.set('STATE', 'migrate_error', 'False')
 
 def export_vm(vm_id):
 	conf.read(['./running.conf'])
-	vms = json.loads(conf.get('STATE', 'vms'))
-	log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
-	vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
-	cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
-		'-o --powerOffSource --noSSLVerify --acceptAllEulas --skipManifestGeneration --noImageFiles',
-		vms[vm_id]['clean_name'],
-		conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
-		conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
-		conf.get('VMWARE', 'endpoint'),
-		vms[vm_id]['src_dc'],
-		vms[vm_id]['src_name']
-	)
-	output = ''
-	try:
-		#output = subprocess.check_output(cmd, shell=True)
-		#log.info('Running the ovftool...\n%s' % (output))
-		log.info('Running ovftool...')
-		p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
-		for line in iter(p.stdout.readline, b''):
-		    log.info(line)
-		p.communicate() # close p.stdout, wait for the subprocess to exit
-	except:
-		log.info('Initial export attempt failed.  Trying a different export format...')
-		# since the exports have been inconsistent, if the first fails, try this method.
-		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
+	if not conf.getboolean('STATE', 'migrate_error'):
+		vms = json.loads(conf.get('STATE', 'vms'))
+		log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
+		vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
+		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
 			'-o --powerOffSource --noSSLVerify --acceptAllEulas --skipManifestGeneration --noImageFiles',
 			vms[vm_id]['clean_name'],
 			conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 			conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 			conf.get('VMWARE', 'endpoint'),
 			vms[vm_id]['src_dc'],
-			vms[vm_id]['src_path'].replace(' ', '')
+			vms[vm_id]['src_name']
 		)
+		output = ''
 		try:
-			#output = subprocess.check_output(cmd, shell=True)
-		#except subprocess.CalledProcessError, e:
-			p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
-			for line in iter(p.stdout.readline, b''):
-			    log.info(line)
-			p.communicate() # close p.stdout, wait for the subprocess to exit
+			log.info('Running the OVFtool (this will take a while)...\n%s' % (output))
+			output = subprocess.check_output(cmd, shell=True)
+			log.info('OVFtool output\n%s' % (output))
+			#log.info('Running ovftool...')
+			#p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
+			#for line in iter(p.stdout.readline, b''):
+			#    log.info(line)
+			#p.communicate() # close p.stdout, wait for the subprocess to exit
 		except:
-			log.error('Could not export %s \n%s' % (vms[vm_id]['src_name'], str(sys.exc_info())))
-			conf.set('STATE', 'migrate_error', 'True')
-	if not conf.getboolean('STATE', 'migrate_error'):
-		# we have the resulting OVA file.  process the OVA file...
-		if len(vms[vm_id]['src_disks']) > 1:
-			log.info('Processing multi disk ova...')
-		elif len(vms[vm_id]['src_disks']) == 1:
-			log.info('Processing single disk ova...')
-		conf.set('STATE', 'vms', json.dumps(vms))
-		with open('running.conf', 'wb') as f:
-			conf.write(f) # update the file to include the changes we have made
-		split_ok = True
-		split_ok = split_ova(vm_id)
-		if split_ok:
-			conf.read(['./running.conf'])
-			vms = json.loads(conf.get('STATE', 'vms'))
-		if split_ok:
-			log.info('Finished exporting %s' % (vms[vm_id]['src_name']))
-			vms[vm_id]['state'] = 'exported'
-		else:
-			log.error('There were problems exporting the disks for %s' % (vms[vm_id]['src_name']))
-		conf.set('STATE', 'vms', json.dumps(vms))
-		with open('running.conf', 'wb') as f:
-			conf.write(f) # update the file to include the changes we have made
+			log.info('Initial export attempt failed.  Trying a different export format...')
+			# since the exports have been inconsistent, if the first fails, try this method.
+			cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
+				'-o --powerOffSource --noSSLVerify --acceptAllEulas --skipManifestGeneration --noImageFiles',
+				vms[vm_id]['clean_name'],
+				conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
+				conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
+				conf.get('VMWARE', 'endpoint'),
+				vms[vm_id]['src_dc'],
+				vms[vm_id]['src_path'].replace(' ', '')
+			)
+			try:
+				output = subprocess.check_output(cmd, shell=True)
+				log.info('Running ovftool...')
+			except subprocess.CalledProcessError, e:
+			#	p = subprocess.Popen(cmd, stdout=subprocess.PIPE, bufsize=1, shell=True)
+			#	for line in iter(p.stdout.readline, b''):
+			#	    log.info(line)
+			#	p.communicate() # close p.stdout, wait for the subprocess to exit
+			#except:
+				log.error('Could not export %s \n%s' % (vms[vm_id]['src_name'], str(sys.exc_info())))
+				conf.read(['./running.conf'])
+				conf.set('STATE', 'migrate_error', 'True')
+				conf.set('STATE', 'vms', json.dumps(vms))
+				with open('running.conf', 'wb') as f:
+					conf.write(f) # update the file to include the changes we have made
+		if not conf.getboolean('STATE', 'migrate_error'):
+			# we have the resulting OVA file.  process the OVA file...
+			if len(vms[vm_id]['src_disks']) > 1:
+				log.info('Processing multi disk ova...')
+			elif len(vms[vm_id]['src_disks']) == 1:
+				log.info('Processing single disk ova...')
+			conf.set('STATE', 'vms', json.dumps(vms))
+			with open('running.conf', 'wb') as f:
+				conf.write(f) # update the file to include the changes we have made
+			split_ok = True
+			split_ok = split_ova(vm_id)
+			if split_ok:
+				conf.read(['./running.conf'])
+				vms = json.loads(conf.get('STATE', 'vms'))
+			if split_ok:
+				log.info('Finished exporting %s' % (vms[vm_id]['src_name']))
+				vms[vm_id]['state'] = 'exported'
+			else:
+				log.error('There were problems exporting the disks for %s' % (vms[vm_id]['src_name']))
+			conf.set('STATE', 'vms', json.dumps(vms))
+			with open('running.conf', 'wb') as f:
+				conf.write(f) # update the file to include the changes we have made
+	else:
+		log.info('An error has occured.  Skipping the export process...')
 
 def split_ova(vm_id):
 	split_ok = True
@@ -271,207 +280,245 @@ def split_ova(vm_id):
 def import_vm(vm_id):
 	# import the vm
 	conf.read(['./running.conf'])
-	vms = json.loads(conf.get('STATE', 'vms'))
-	log.info('IMPORTING %s' % (vms[vm_id]['src_name']))
-	if vms[vm_id]['src_name'] != vms[vm_id]['clean_name']:
-		log.info('Renaming VM from %s to %s to comply with CloudPlatform...' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
-	imported = False
+	if not conf.getboolean('STATE', 'migrate_error'):
+		vms = json.loads(conf.get('STATE', 'vms'))
+		log.info('IMPORTING %s' % (vms[vm_id]['src_name']))
+		if vms[vm_id]['src_name'] != vms[vm_id]['clean_name']:
+			log.info('Renaming VM from %s to %s to comply with CloudPlatform...' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
+		imported = False
 
-	# make sure we have a complete config before we start
-	if ('cs_zone' in vms[vm_id] and 'cs_domain' in vms[vm_id] and 'cs_account' in vms[vm_id] and 'cs_service_offering' in vms[vm_id]):
-		# manage the disks
-		if len(vms[vm_id]['src_disks']) > 0:
-			# get the possible os type ids
-			os_type = ''
-			type_search = 'Other (64-bit)'
-			if vms[vm_id]['src_os_arch'] == 32:
-				type_search = 'Other (32-bit)'
-			type_ids = cs.request(dict({'command':'listOsTypes'}))
-			if type_ids and 'ostype' in type_ids:
-				for os_type_obj in type_ids['ostype']:
-					if os_type_obj['description'] == type_search:
-						os_type = os_type_obj['id']
-						break
+		# make sure we have a complete config before we start
+		if ('cs_zone' in vms[vm_id] and 'cs_domain' in vms[vm_id] and 'cs_account' in vms[vm_id] and 'cs_service_offering' in vms[vm_id]):
+			# manage the disks
+			if len(vms[vm_id]['src_disks']) > 0:
+				# get the possible os type ids
+				os_type = ''
+				type_search = 'Other (64-bit)'
+				if vms[vm_id]['src_os_arch'] == 32:
+					type_search = 'Other (32-bit)'
+				type_ids = cs.request(dict({'command':'listOsTypes'}))
+				if type_ids and 'ostype' in type_ids:
+					for os_type_obj in type_ids['ostype']:
+						if os_type_obj['description'] == type_search:
+							os_type = os_type_obj['id']
+							break
 
-			# register the first disk as a template since it is the root disk
-			root_name = os.path.splitext(vms[vm_id]['src_disks'][0]['ova'])[0]
-			log.info('Creating template for root volume %s...' % (root_name))
-			template = cs.request(dict({
-				'command':'registerTemplate',
-				'name':root_name,
-				'displaytext':root_name,
-				'format':'OVA',
-				'hypervisor':'VMware',
-				'ostypeid':os_type,
-				'url':vms[vm_id]['src_disks'][0]['url'],
-				'zoneid':vms[vm_id]['cs_zone'],
-				'domainid':vms[vm_id]['cs_domain'],
-				'account':vms[vm_id]['cs_account']
-			}))
-			if template:
-				log.info('Template %s created' % (template['template'][0]['id']))
-				vms[vm_id]['cs_template_id'] = template['template'][0]['id']
-				imported = True
-			else:
-				log.error('Failed to create template.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
+				# register the first disk as a template since it is the root disk
+				root_name = os.path.splitext(vms[vm_id]['src_disks'][0]['ova'])[0]
+				log.info('Creating template for root volume %s...' % (root_name))
+				template = cs.request(dict({
+					'command':'registerTemplate',
+					'name':root_name,
+					'displaytext':root_name,
+					'format':'OVA',
+					'hypervisor':'VMware',
+					'ostypeid':os_type,
+					'url':vms[vm_id]['src_disks'][0]['url'],
+					'zoneid':vms[vm_id]['cs_zone'],
+					'domainid':vms[vm_id]['cs_domain'],
+					'account':vms[vm_id]['cs_account']
+				}))
+				if template:
+					log.info('Template %s created' % (template['template'][0]['id']))
+					vms[vm_id]['cs_template_id'] = template['template'][0]['id']
+					imported = True
+				else:
+					log.error('Failed to create template.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
+					conf.read(['./running.conf'])
+					conf.set('STATE', 'migrate_error', 'True')
+					conf.set('STATE', 'vms', json.dumps(vms))
+					with open('running.conf', 'wb') as f:
+						conf.write(f) # update the file to include the changes we have made
 
-			# check if there are data disks
-			if len(vms[vm_id]['src_disks']) > 1:
-				# upload the remaining disks as volumes
-				for i,v in enumerate(vms[vm_id]['src_disks'][1:]):
-					index = i+1
-					imported = False # reset because we have more to do...
-					disk_name = os.path.splitext(vms[vm_id]['src_disks'][index]['ova'])[0]
-					log.info('Uploading data volume %s...' % (disk_name))
-					volume = cs.request(dict({
-						'command':'uploadVolume',
-						'name':disk_name,
-						'format':'OVA',
-						'url':vms[vm_id]['src_disks'][index]['url'],
-						'zoneid':vms[vm_id]['cs_zone'],
-						'domainid':vms[vm_id]['cs_domain'],
-						'account':vms[vm_id]['cs_account']
-					}))
-					if volume and 'jobresult' in volume and 'volume' in volume['jobresult']:
-						volume_id = volume['jobresult']['volume']['id']
-						log.info('Volume %s uploaded' % (volume_id))
-						if 'cs_volumes' in vms[vm_id]:
-							vms[vm_id]['cs_volumes'].append(volume_id)
+				# check if there are data disks
+				if len(vms[vm_id]['src_disks']) > 1:
+					# upload the remaining disks as volumes
+					for i,v in enumerate(vms[vm_id]['src_disks'][1:]):
+						index = i+1
+						imported = False # reset because we have more to do...
+						disk_name = os.path.splitext(vms[vm_id]['src_disks'][index]['ova'])[0]
+						log.info('Uploading data volume %s...' % (disk_name))
+						volume = cs.request(dict({
+							'command':'uploadVolume',
+							'name':disk_name,
+							'format':'OVA',
+							'url':vms[vm_id]['src_disks'][index]['url'],
+							'zoneid':vms[vm_id]['cs_zone'],
+							'domainid':vms[vm_id]['cs_domain'],
+							'account':vms[vm_id]['cs_account']
+						}))
+						if volume and 'jobresult' in volume and 'volume' in volume['jobresult']:
+							volume_id = volume['jobresult']['volume']['id']
+							log.info('Volume %s uploaded' % (volume_id))
+							if 'cs_volumes' in vms[vm_id]:
+								vms[vm_id]['cs_volumes'].append(volume_id)
+							else:
+								vms[vm_id]['cs_volumes'] = [volume_id]
+							imported = True
 						else:
-							vms[vm_id]['cs_volumes'] = [volume_id]
-						imported = True
-					else:
-						log.error('Failed to upload the volume.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
-	else:
-		log.error('We are missing CCP data for %s' % (vms[vm_id]['src_name']))
+							log.error('Failed to upload the volume.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
+							conf.read(['./running.conf'])
+							conf.set('STATE', 'migrate_error', 'True')
+							conf.set('STATE', 'vms', json.dumps(vms))
+							with open('running.conf', 'wb') as f:
+								conf.write(f) # update the file to include the changes we have made
+		else:
+			log.error('We are missing CCP data for %s' % (vms[vm_id]['src_name']))
+			conf.read(['./running.conf'])
+			conf.set('STATE', 'migrate_error', 'True')
+			conf.set('STATE', 'vms', json.dumps(vms))
+			with open('running.conf', 'wb') as f:
+				conf.write(f) # update the file to include the changes we have made
 
-	if imported:
-		### Update the running.conf file
-		log.info('Finished importing %s' % (vms[vm_id]['clean_name']))
-		vms[vm_id]['state'] = 'imported'
-		conf.set('STATE', 'vms', json.dumps(vms))
-		with open('running.conf', 'wb') as f:
-			conf.write(f) # update the file to include the changes we have made
+		if imported:
+			### Update the running.conf file
+			log.info('Finished importing %s' % (vms[vm_id]['clean_name']))
+			vms[vm_id]['state'] = 'imported'
+			conf.set('STATE', 'vms', json.dumps(vms))
+			with open('running.conf', 'wb') as f:
+				conf.write(f) # update the file to include the changes we have made
+		else:
+			log.warning('Fail to import %s' % (vms[vm_id]['clean_name'])
+	else:
+		log.info('An error has occured.  Skipping the import process...')
 
 def launch_vm(vm_id):
 	# launch the new vm
 	conf.read(['./running.conf'])
-	vms = json.loads(conf.get('STATE', 'vms'))
-	log.info('LAUNCHING %s' % (vms[vm_id]['clean_name']))
+	if not conf.getboolean('STATE', 'migrate_error'):
+		vms = json.loads(conf.get('STATE', 'vms'))
+		log.info('LAUNCHING %s' % (vms[vm_id]['clean_name']))
 
-	poll = 1
-	has_error = False
-	while not has_error and vms[vm_id]['state'] != 'launched':
-		# check if the template has finished downloading...
-		template = cs.request(dict({
-			'command':'listTemplates', 
-			'listall':'true', 
-			'templatefilter':'self', 
-			'id':vms[vm_id]['cs_template_id']
-		}))
-		if template and 'template' in template and len(template['template']) > 0:
-			if template['template'][0]['isready']: # template is ready
-				volumes_ready = True
-				if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0: # check if volumes are ready
-					for volume_id in vms[vm_id]['cs_volumes']:
-						volume = cs.request(dict({
-							'command':'listVolumes', 
-							'listall':'true', 
-							'id':volume_id
-						}))
-						if volume and 'volume' in volume and len(volume['volume']) > 0:
-							# check the state of the volume
-							if volume['volume'][0]['state'] != 'Uploaded' and volume['volume'][0]['state'] != 'Ready':
-								log.info('%s: %s is waiting for volume %s, current state: %s' % 
-									(poll, vms[vm_id]['clean_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
-								volumes_ready = False
-							else:
-								volumes_ready = volumes_ready and True # propogates False if any are False
-				# everything should be ready for this VM to be started, go ahead...
-				if volumes_ready:
-					log.info('%s: %s is ready to launch' % (poll, vms[vm_id]['clean_name']))
-					log.info('Launching VM %s...' % (vms[vm_id]['clean_name']))
-					# create a VM instance using the template
-					cmd = dict({
-						'command':'deployVirtualMachine',
-						'name':vms[vm_id]['clean_name'],
-						'displayname':vms[vm_id]['clean_name'],
-						'templateid':vms[vm_id]['cs_template_id'],
-						'serviceofferingid':vms[vm_id]['cs_service_offering'],
-						'zoneid':vms[vm_id]['cs_zone'],
-						'domainid':vms[vm_id]['cs_domain'],
-						'account':vms[vm_id]['cs_account']
-					})
-					if 'cs_network' in vms[vm_id] and vms[vm_id]['cs_network'] != '': # pass in a network if it is available
-						cmd['networkids'] = vms[vm_id]['cs_network']
-					cs_vm = cs.request(cmd) # launch the VM
-					if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
-						log.info('VM %s launched' % (vms[vm_id]['clean_name']))
-
-						# attach the data volumes to it if there are data volumes
-						if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0:
-							for volume_id in vms[vm_id]['cs_volumes']:
-								log.info('Attaching volume %s...' % (volume_id))
-								attach = cs.request(dict({
-									'command':'attachVolume',
-									'id':volume_id,
-									'virtualmachineid':cs_vm['jobresult']['virtualmachine']['id']}))
-								if attach and 'jobstatus' in attach and attach['jobstatus']:
-									log.info('Successfully attached volume %s' % (volume_id))
+		poll = 1
+		has_error = False
+		while not has_error and vms[vm_id]['state'] != 'launched':
+			# check if the template has finished downloading...
+			template = cs.request(dict({
+				'command':'listTemplates', 
+				'listall':'true', 
+				'templatefilter':'self', 
+				'id':vms[vm_id]['cs_template_id']
+			}))
+			if template and 'template' in template and len(template['template']) > 0:
+				if template['template'][0]['isready']: # template is ready
+					volumes_ready = True
+					if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0: # check if volumes are ready
+						for volume_id in vms[vm_id]['cs_volumes']:
+							volume = cs.request(dict({
+								'command':'listVolumes', 
+								'listall':'true', 
+								'id':volume_id
+							}))
+							if volume and 'volume' in volume and len(volume['volume']) > 0:
+								# check the state of the volume
+								if volume['volume'][0]['state'] != 'Uploaded' and volume['volume'][0]['state'] != 'Ready':
+									log.info('%s: %s is waiting for volume %s, current state: %s' % 
+										(poll, vms[vm_id]['clean_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
+									volumes_ready = False
 								else:
-									log.error('Failed to attach volume %s' % (volume_id))
-									has_error = True
+									volumes_ready = volumes_ready and True # propogates False if any are False
+					# everything should be ready for this VM to be started, go ahead...
+					if volumes_ready:
+						log.info('%s: %s is ready to launch' % (poll, vms[vm_id]['clean_name']))
+						log.info('Launching VM %s (this will take a while)...' % (vms[vm_id]['clean_name']))
+						# create a VM instance using the template
+						cmd = dict({
+							'command':'deployVirtualMachine',
+							'name':vms[vm_id]['clean_name'],
+							'displayname':vms[vm_id]['clean_name'],
+							'templateid':vms[vm_id]['cs_template_id'],
+							'serviceofferingid':vms[vm_id]['cs_service_offering'],
+							'zoneid':vms[vm_id]['cs_zone'],
+							'domainid':vms[vm_id]['cs_domain'],
+							'account':vms[vm_id]['cs_account']
+						})
+						if 'cs_network' in vms[vm_id] and vms[vm_id]['cs_network'] != '': # pass in a network if it is available
+							cmd['networkids'] = vms[vm_id]['cs_network']
+						cs_vm = cs.request(cmd) # launch the VM
+						if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
+							log.info('VM %s launched' % (vms[vm_id]['clean_name']))
+
+							# attach the data volumes to it if there are data volumes
+							if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0:
+								for volume_id in vms[vm_id]['cs_volumes']:
+									log.info('Attaching volume %s...' % (volume_id))
+									attach = cs.request(dict({
+										'command':'attachVolume',
+										'id':volume_id,
+										'virtualmachineid':cs_vm['jobresult']['virtualmachine']['id']}))
+									if attach and 'jobstatus' in attach and attach['jobstatus']:
+										log.info('Successfully attached volume %s' % (volume_id))
+									else:
+										log.error('Failed to attach volume %s' % (volume_id))
+										has_error = True
+										conf.read(['./running.conf'])
+										conf.set('STATE', 'migrate_error', 'True')
+										conf.set('STATE', 'vms', json.dumps(vms))
+										with open('running.conf', 'wb') as f:
+											conf.write(f) # update the file to include the changes we have made
+								if not has_error:
+									log.info('Rebooting the VM to make the attached volumes visible...')
+									reboot = cs.request(dict({
+										'command':'rebootVirtualMachine', 
+										'id':cs_vm['jobresult']['virtualmachine']['id']}))
+									if reboot and 'jobstatus' in reboot and reboot['jobstatus']:
+										log.info('VM rebooted')
+									else:
+										log.error('VM did not reboot.  Check the VM to make sure it came up correctly.')
 							if not has_error:
-								log.info('Rebooting the VM to make the attached volumes visible...')
-								reboot = cs.request(dict({
-									'command':'rebootVirtualMachine', 
-									'id':cs_vm['jobresult']['virtualmachine']['id']}))
-								if reboot and 'jobstatus' in reboot and reboot['jobstatus']:
-									log.info('VM rebooted')
-								else:
-									log.error('VM did not reboot.  Check the VM to make sure it came up correctly.')
-						if not has_error:
-							### Update the running.conf file
-							conf.read(['./running.conf']) # make sure we have everything from this file already
-							vms[vm_id]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
-							vms[vm_id]['state'] = 'launched'
+								### Update the running.conf file
+								conf.read(['./running.conf']) # make sure we have everything from this file already
+								vms[vm_id]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
+								vms[vm_id]['state'] = 'launched'
+								conf.set('STATE', 'vms', json.dumps(vms))
+								with open('running.conf', 'wb') as f:
+									conf.write(f) # update the file to include the changes we have made
+						elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
+							log.error('%s failed to start!  ERROR: %s' % (vms[vm_id]['clean_name'], cs_vm['jobresult']['errortext']))
+							has_error = True
+							conf.read(['./running.conf'])
+							conf.set('STATE', 'migrate_error', 'True')
 							conf.set('STATE', 'vms', json.dumps(vms))
 							with open('running.conf', 'wb') as f:
 								conf.write(f) # update the file to include the changes we have made
-					elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
-						log.error('%s failed to start!  ERROR: %s' % (vms[vm_id]['clean_name'], cs_vm['jobresult']['errortext']))
-						has_error = True
-					else:
-						log.error('%s did not Start or Error correctly...' % (vms[vm_id]['clean_name']))
-						has_error = True
+						else:
+							log.error('%s did not Start or Error correctly...' % (vms[vm_id]['clean_name']))
+							has_error = True
+							conf.read(['./running.conf'])
+							conf.set('STATE', 'migrate_error', 'True')
+							conf.set('STATE', 'vms', json.dumps(vms))
+							with open('running.conf', 'wb') as f:
+								conf.write(f) # update the file to include the changes we have made
+				else:
+					log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
+			if vms[vm_id]['state'] != 'launched':
+				log.info('... polling ...')
+				poll = poll + 1
+				time.sleep(10)
+		if not has_error: # complete the migration...
+			conf.read(['./running.conf'])
+			vms = json.loads(conf.get('STATE', 'vms'))
+
+			# clean up ova files
+			cmd = 'cd %s; rm -f %s.ova %s-disk*' % (conf.get('FILESERVER', 'files_path'), vms[vm_id]['clean_name'], vms[vm_id]['clean_name'])
+			ret = subprocess.call(cmd, shell=True)
+			if ret == 0:
+				log.info('Successfully removed the imported OVA files from the file server')
 			else:
-				log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
-		if vms[vm_id]['state'] != 'launched':
-			log.info('... polling ...')
-			poll = poll + 1
-			time.sleep(10)
-	if not has_error: # complete the migration...
-		conf.read(['./running.conf'])
-		vms = json.loads(conf.get('STATE', 'vms'))
+				log.warning('Failed to remove the imported OVA files.  Consider cleaning up the directory "%s" after the migration.' % (
+					conf.get('FILESERVER', 'files_path')))
 
-		# clean up ova files
-		cmd = 'cd %s; rm -f %s.ova %s-disk*' % (conf.get('FILESERVER', 'files_path'), vms[vm_id]['clean_name'], vms[vm_id]['clean_name'])
-		ret = subprocess.call(cmd, shell=True)
-		if ret == 0:
-			log.info('Successfully removed the imported OVA files from the file server')
-		else:
-			log.warning('Failed to remove the imported OVA files.  Consider cleaning up the directory "%s" after the migration.' % (
-				conf.get('FILESERVER', 'files_path')))
-
-		# save the updated state
-		vms[vm_id]['state'] = 'migrated'
-		conf.set('STATE', 'vms', json.dumps(vms))
-		migrate = json.loads(conf.get('STATE', 'migrate'))
-		migrate.remove(vm_id)
-		conf.set('STATE', 'migrate', json.dumps(migrate))
-		with open('running.conf', 'wb') as f:
-			conf.write(f) # update the file to include the changes we have made
-		log.info('SUCCESSFULLY MIGRATED %s to %s\n\n' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
+			# save the updated state
+			vms[vm_id]['state'] = 'migrated'
+			conf.set('STATE', 'vms', json.dumps(vms))
+			migrate = json.loads(conf.get('STATE', 'migrate'))
+			migrate.remove(vm_id)
+			conf.set('STATE', 'migrate', json.dumps(migrate))
+			with open('running.conf', 'wb') as f:
+				conf.write(f) # update the file to include the changes we have made
+			log.info('SUCCESSFULLY MIGRATED %s to %s\n\n' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
+	else:
+		log.info('An error has occured.  Skipping the launch process...')
 
 # run the actual migration
 def do_migration():
@@ -479,6 +526,8 @@ def do_migration():
 	vms = json.loads(conf.get('STATE', 'vms'))
 	migrate = json.loads(conf.get('STATE', 'migrate'))
 	for vm_id in migrate[:]: # makes a copy of the list so we can delete from the original
+		if conf.getboolean('STATE', 'migrate_error'):
+			break
 		state = vms[vm_id]['state']
 		if state == '' or state == 'migrated':
 			export_vm(vm_id)
