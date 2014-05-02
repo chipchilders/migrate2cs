@@ -52,7 +52,7 @@ def export_vm(vm_id):
 		log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
 		vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name'])
 		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
-			'-o --powerOffSource --noSSLVerify --acceptAllEulas --skipManifestGeneration --noImageFiles',
+			'-o --powerOffSource --noSSLVerify --acceptAllEulas',
 			vms[vm_id]['clean_name'],
 			conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 			conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
@@ -64,13 +64,13 @@ def export_vm(vm_id):
 		try:
 			log.info('Running the OVFtool (this will take a while)...\n%s' % (output))
 			output = subprocess.check_output(cmd, shell=True)
-			log.info('OVFtool output\n%s' % (output))
+			log.info('OVFtool output:\n%s' % (output))
 		except subprocess.CalledProcessError, e:
-			log.info('OVFtool output\n%s' % (e.output))
+			log.info('OVFtool output:\n%s' % (e.output))
 			log.info('Initial export attempt failed.  Trying a different export format...')
 			# since the exports have been inconsistent, if the first fails, try this method.
 			cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
-				'-o --powerOffSource --noSSLVerify --acceptAllEulas --skipManifestGeneration --noImageFiles',
+				'-o --powerOffSource --noSSLVerify --acceptAllEulas',
 				vms[vm_id]['clean_name'],
 				conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 				conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
@@ -80,7 +80,7 @@ def export_vm(vm_id):
 			)
 			try:
 				output = subprocess.check_output(cmd, shell=True)
-				log.info('OVFtool output\n%s' % (output))
+				log.info('OVFtool output:\n%s' % (output))
 			except subprocess.CalledProcessError, e:
 				log.error('Could not export %s \n%s' % (vms[vm_id]['src_name'], e.output))
 				conf.read(['./running.conf'])
