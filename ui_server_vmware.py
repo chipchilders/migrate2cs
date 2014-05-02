@@ -25,11 +25,12 @@ conf.set('VMWARE', 'log_file', './logs/vmware_api.log')
 conf.add_section('WEBSERVER')
 conf.set('WEBSERVER', 'debug', 'False')
 conf.set('WEBSERVER', 'port', '8787')
+conf.add_section('STATE') # STATE config section to maintain state of the running process
+conf.set('STATE', 'active_migration', 'False')
 # read in config files if they exist
 conf.read(['./settings.conf', './running.conf'])
 
-if not conf.has_section('STATE'):
-	conf.add_section('STATE') # STATE config section to maintain state of the running process
+
 
 # require the vmware endpoint to be configured to start the server
 if not conf.has_option('VMWARE', 'endpoint'):
@@ -42,7 +43,6 @@ if not conf.has_option('VMWARE', 'password'):
 # make sure we have an nfs mount point
 if not conf.has_section('FILESERVER') or not conf.has_option('FILESERVER', 'files_path'):
 	sys.exit("Config required in settings.conf: [FILESERVER] -> files_path")
-
 
 # add server logging
 log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -155,13 +155,21 @@ def discover_src_vms():
 @bottle.route('/')
 @bottle.view('index')
 def index():
-	open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # refresh the cs_request.log on reloads
-	open(conf.get('VMWARE', 'log_file'), 'w').close() # refresh the vmware_api.log on reloads
 	variables = {}
-	variables['cs_objs'] = json.dumps(cs_discover_accounts())
-	vms, order = discover_src_vms()
-	variables['vms'] = json.dumps(vms)
-	variables['vm_order'] = json.dumps(order)
+	conf.read('./running.conf'])
+	if not conf.getboolean('STATE', 'active_migration'):
+		open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # refresh the cs_request.log on reloads
+		open(conf.get('VMWARE', 'log_file'), 'w').close() # refresh the vmware_api.log on reloads
+		variables['cs_objs'] = json.dumps(cs_discover_accounts())
+		vms, order = discover_src_vms()
+		variables['vms'] = json.dumps(vms)
+		variables['vm_order'] = json.dumps(order)
+		variables['active_migration'] = conf.getboolean('STATE', 'active_migration')
+	else:
+		variables['cs_objs'] = json.dumps(json.loads(conf.get('STATE', 'cs_objs')))
+		variables['vms'] = vms = json.dumps(json.loads(conf.get('STATE', 'vms')))
+		variables['vm_order'] = json.dumps(json.loads(conf.get('STATE', 'vm_order')))
+		variables['active_migration'] = conf.getboolean('STATE', 'active_migration')
 	variables['log_list'] = get_log_list()
 	return dict(variables)
 
@@ -171,6 +179,7 @@ def index():
 def start_migration():
 	if bottle.request.params.migrate:
 		conf.read(['./running.conf'])
+		conf.set('STATE', 'active_migration', 'True')
 		conf.set('STATE', 'migrate', bottle.request.params.migrate)
 		conf.set('STATE', 'migration_timestamp', int(bottle.request.params.timestamp)/1000)
 		with open('running.conf', 'wb') as f:

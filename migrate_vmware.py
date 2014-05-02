@@ -31,13 +31,13 @@ if not conf.has_section('STATE'):
 if not conf.has_option('STATE', 'migrate'):
 	conf.set('STATE', 'migrate', '[]') # parsed with: json.loads(conf.get('STATE', 'migrate'))
 
-conf.set('VMWARE', 'log_file', './logs/vmware_migration_%s.log' % (conf.get('STATE', 'migration_timestamp')))
+conf.set('VMWARE', 'migration_log_file', './logs/vmware_migration_%s.log' % (conf.get('STATE', 'migration_timestamp')))
 with open('running.conf', 'wb') as f:
 	conf.write(f) # update the file to include the changes we have made
 
 # add migration logging
 log = logging.getLogger()
-log_handler = logging.FileHandler(conf.get('VMWARE', 'log_file'))
+log_handler = logging.FileHandler(conf.get('VMWARE', 'migration_log_file'))
 log_format = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
 log_handler.setFormatter(log_format)
 log.addHandler(log_handler) 
@@ -551,13 +551,15 @@ def do_migration():
 
 if __name__ == "__main__":
 	do_migration()
+	conf.read(['./running.conf'])
 	if conf.getboolean('STATE', 'migrate_error'):
 		log.info('Finished with ERRORS!!!\n')
 	else:
 		log.info('ALL FINISHED!!!\n')
 
 	log.info('~~~ ~~~ ~~~ ~~~')
-
-	# cleanup settings that need to be refereshed each run
+	conf.set('STATE', 'active_migration', 'False')
 	conf.remove_option('STATE', 'migrate_error')
+	with open('running.conf', 'wb') as f:
+		conf.write(f) # update the file to include the changes we have made
 

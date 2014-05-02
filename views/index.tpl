@@ -15,6 +15,7 @@
       var vms = {{!vms}};
       var vm_order = {{!vm_order}};
       var poll_interval = null;
+      var active_migration = Boolean({{active_migration}});
 
       $(function() {
         $('#accordion').accordion({
@@ -79,6 +80,20 @@
         //$('.edit_migration').on('click', function() {
         //  $('#accordion').accordion('option', 'active', 0);
         //});
+        
+        if (active_migration) {
+          $('#accordion').accordion('option', 'active', 1);
+          $('.log_output').addClass('active');
+          $('.log_output').val('... Waiting for initial log data ...');
+          $('#ui-accordion-accordion-panel-0 .overlay').show();
+          $('.migrate').attr('disabled','disabled');
+          poll_interval = setInterval('get_migration_log();', 10000);
+          $('#notice').removeClass().html('There is a migration running.  Showing progress...');
+          $('#notice').show();
+          setTimeout(function() {
+            $('#notice').fadeOut();
+          }, 5000);
+        }
 
       }); // end onload
 
@@ -376,6 +391,7 @@
                   $('.log_output').val('... Waiting for initial log data ...');
                   $('#ui-accordion-accordion-panel-0 .overlay').show();
                   $('#accordion').accordion('option', 'active', 1);
+                  active_migration = true;
                 },
                 success: function(data) {
                   poll_interval = setInterval('get_migration_log();', 10000);
@@ -391,6 +407,7 @@
                   $('#notice').show();
                   $('#ui-accordion-accordion-panel-0 .overlay').hide();
                   $('#accordion').accordion('option', 'active', 0);
+                  active_migration = false;
                   setTimeout(function() {
                     $('#notice').fadeOut();
                   }, 5000);
@@ -429,6 +446,7 @@
                 $('.log_output').removeClass('active');
                 $('#ui-accordion-accordion-panel-0 .overlay').hide();
                 $('.migrate').removeAttr('disabled');
+                active_migration = false;
               }
             }
           },

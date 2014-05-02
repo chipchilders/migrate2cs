@@ -119,8 +119,6 @@ secret_key = an96yMkcWrfyexdJ-McpeUdsQtWp_QEZlDk7jbbBcf1yDn3UNmF5J4XDYaDswn5klp0
 [FILESERVER]
 ### REQUIRED: this is where the OVA files will be copied to and then served from for CloudPlatform to access
 host = 10.223.130.146          ; this is the ip of the migration machine
-username = root
-password = password
 port = 80                      ; this needs to be 80 or 443 for CloudPlatform to use it
 base_uri = /                   ; the file name will be appended to this path in the url
 files_path = /mnt/share/ovas   ; this is where the files will get saved to and served from
