@@ -55,7 +55,7 @@ def export_vm(vm_id):
 		if len(vms[vm_id]['clean_name']) > 63:
 			vms[vm_id]['clean_name'] = vms[vm_id]['clean_name'][:63]
 		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
-			'-o --powerOffSource --noSSLVerify --acceptAllEulas --maxVirtualHardwareVersion=%s' % (
+			'-o --powerOffSource --noSSLVerify --acceptAllEulas --noImageFiles --maxVirtualHardwareVersion=%s' % (
 				conf.get('VMWARE', 'max_virtual_hardware_version')),
 			vms[vm_id]['clean_name'],
 			conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
@@ -74,7 +74,7 @@ def export_vm(vm_id):
 			log.info('Initial export attempt failed.  Trying a different export format...')
 			# since the exports have been inconsistent, if the first fails, try this method.
 			cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
-				'-o --powerOffSource --noSSLVerify --acceptAllEulas --maxVirtualHardwareVersion=%s' % (
+				'-o --powerOffSource --noSSLVerify --acceptAllEulas --noImageFiles --maxVirtualHardwareVersion=%s' % (
 					conf.get('VMWARE', 'max_virtual_hardware_version')),
 				vms[vm_id]['clean_name'],
 				conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
