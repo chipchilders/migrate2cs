@@ -55,7 +55,7 @@ def export_vm(vm_id):
 		if len(vms[vm_id]['clean_name']) > 63:
 			vms[vm_id]['clean_name'] = vms[vm_id]['clean_name'][:63]
 		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
-			'-o --powerOffSource --noSSLVerify --acceptAllEulas --noImageFiles --maxVirtualHardwareVersion=%s' % (
+			'-o --powerOffSource --noSSLVerify --acceptAllEulas --maxVirtualHardwareVersion=%s' % (
 				conf.get('VMWARE', 'max_virtual_hardware_version')),
 			vms[vm_id]['clean_name'],
 			conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
@@ -74,7 +74,7 @@ def export_vm(vm_id):
 			log.info('Initial export attempt failed.  Trying a different export format...')
 			# since the exports have been inconsistent, if the first fails, try this method.
 			cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
-				'-o --powerOffSource --noSSLVerify --acceptAllEulas --noImageFiles --maxVirtualHardwareVersion=%s' % (
+				'-o --powerOffSource --noSSLVerify --acceptAllEulas --maxVirtualHardwareVersion=%s' % (
 					conf.get('VMWARE', 'max_virtual_hardware_version')),
 				vms[vm_id]['clean_name'],
 				conf.get('VMWARE', 'username').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
@@ -164,6 +164,7 @@ def split_ova(vm_id):
 				dom = ET.parse(src_ovf_file)
 				tree = dom.getroot()
 				split_base = None
+				items_to_remove = []
 
 				# get the values we care about for this iteration
 				disk_el = tree.findall('{%(ns)s}DiskSection/{%(ns)s}Disk' % ns)[index]
@@ -197,11 +198,20 @@ def split_ova(vm_id):
 						parent.remove(d)
 				for f in tree.findall('{%(ns)s}References/{%(ns)s}File' % ns):
 					if f.attrib.get('{%(ovf)s}id' % ns, None) != file_id:
+						if f.attrib.get('{%(ovf)s}id' % ns, None):
+							items_to_remove.append(f.attrib.get('{%(ovf)s}id' % ns))
 						parent = tree.find('{%(ns)s}References' % ns)
 						parent.remove(f)
 				for i in tree.findall('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection/{%(ns)s}Item' % ns):
 					if int(i.find('{%(rasd)s}ResourceType' % ns).text) == DISK_RESOURCE_TYPE:
 						if not i.find('{%(rasd)s}HostResource' % ns).text.endswith(disk_id):
+							parent = tree.find('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection' % ns)
+							parent.remove(i)
+
+				# remove extra Items associated with deleted elements
+				for i in tree.findall('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection/{%(ns)s}Item' % ns):
+					for item in items_to_remove:
+						if i.find('{%(rasd)s}HostResource' % ns) and i.find('{%(rasd)s}HostResource' % ns).text.endswith(item):
 							parent = tree.find('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection' % ns)
 							parent.remove(i)
 
