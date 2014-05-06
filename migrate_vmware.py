@@ -145,6 +145,7 @@ def split_ova(vm_id):
 
 	src_ova_file = '%s.ova' % (vms[vm_id]['clean_name'])
 	src_ova_base = vms[vm_id]['clean_name']
+	print('Extracting %s...' % (src_ova_file))
 	cmd = 'cd %s; rm -rf %s; mkdir %s; tar xvf %s -C %s' % (
 		conf.get('FILESERVER', 'files_path'), src_ova_base, src_ova_base, src_ova_file, src_ova_base)
 	ret = subprocess.call(cmd, shell=True)
@@ -198,8 +199,7 @@ def split_ova(vm_id):
 						parent.remove(d)
 				for f in tree.findall('{%(ns)s}References/{%(ns)s}File' % ns):
 					if f.attrib.get('{%(ovf)s}id' % ns, None) != file_id:
-						if f.attrib.get('{%(ovf)s}id' % ns, None):
-							items_to_remove.append(f.attrib.get('{%(ovf)s}id' % ns))
+						items_to_remove.append(f.attrib.get('{%(ovf)s}id' % ns))
 						parent = tree.find('{%(ns)s}References' % ns)
 						parent.remove(f)
 				for i in tree.findall('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection/{%(ns)s}Item' % ns):
@@ -209,11 +209,12 @@ def split_ova(vm_id):
 							parent.remove(i)
 
 				# remove extra Items associated with deleted elements
-				for i in tree.findall('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection/{%(ns)s}Item' % ns):
-					for item in items_to_remove:
-						if i.find('{%(rasd)s}HostResource' % ns) and i.find('{%(rasd)s}HostResource' % ns).text.endswith(item):
-							parent = tree.find('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection' % ns)
-							parent.remove(i)
+				for d in tree.findall('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection/{%(ns)s}Item' % ns):
+					if d.find('{%(rasd)s}HostResource' % ns) != None:
+						for item in items_to_remove:
+							if d.find('{%(rasd)s}HostResource' % ns).text.endswith(item):
+								parent = tree.find('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection' % ns)
+								parent.remove(d)
 
 				# update elements that require specific values
 				for c in tree.findall('{%(ns)s}VirtualSystem/{%(ns)s}VirtualHardwareSection/{%(vmw)s}Config' % ns):
@@ -243,6 +244,7 @@ def split_ova(vm_id):
 					split_ofv_file)
 				ret = subprocess.call(cmd, shell=True)
 
+				print('Creating %s.ova...' % (split_base))
 				cmd = 'cd %s/%s; rm -rf ../%s.ova; tar cvf ../%s.ova %s.ovf %s' % (
 					conf.get('FILESERVER', 'files_path'), src_ova_base, split_base, split_base, split_base, file_nm)
 				ret = subprocess.call(cmd, shell=True)
