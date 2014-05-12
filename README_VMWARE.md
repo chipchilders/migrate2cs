@@ -216,4 +216,3 @@ Migration state management
     - migration_timestamp - The timestamp associated with the last migration.
     - active_migration - A boolean to specify if there is a migration currently happening.
 
-
