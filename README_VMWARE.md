@@ -60,7 +60,7 @@ $ ./VMware-ovftool-3.5.0-1274719-lin.x86_64.sh
 - This is the location where the exported OVA files will be copied to and then served from for CloudPlatform to access.
 - The migration tool needs file system access to this location to save and modify the OVA files.
 - It is recommended that you use something like an NFS mount point to ensure you have enough space.
-- You need 3-4 times the amount of space as the largest VM you will be migrating.
+- You need 3-4 times the amount of space as the largest VM (total of all its disks) you will be migrating.
 - This documentation assumes that an NFS share is being used and is mounted at '/mnt/share' with a target directory of 'ova' in that share.
 
 ``` bash
@@ -146,10 +146,10 @@ $ nohup python ui_server_vmware.py &
 Starting a migration from the UI
 --------------------------------
 - Navigate to: http://MIGRATION_MACHINE_IP:8787
-- On load, it will discover both the VMware and CloudPlatform enironments, so it may take some time to load.
+- On load, it will discover both the VMware and CloudPlatform enironments, so it will take some time to load.
 - When the page loads, the CloudPlatform details will be available in the dropdowns and the VMware VMs will be listed below.
-- You can click on the VM name to expand it and get more detail.
-- To apply a specific CloudPlatform configuration to a group of VMs, select the VMs and specify the CloudPlatform details in the dropdowns then click the 'Apply to Selected VMs' button.
+- You can click on the VM name to expand it to show more details.
+- To apply a specific CloudPlatform configuration to a group of VMs, select the VMs and specify the CloudPlatform details in the dropdowns, then click the 'Apply to Selected VMs' button.
 - You can review the CloudPlatform details in the expanded view of the VMs.
 - To begin the migration, make sure there are CloudPlatform details applied to all the selected VMs, then click 'Migrate Selected VMs'.
 
@@ -159,24 +159,25 @@ View the progress of a migration
 - The 'Select and Migrate VMs' section will collapse and the 'Migration Progress' section will open when the 'Migrate Selected VMs' is clicked.
 - The textarea in this section will update with the migration progress every 10 seconds.
 - A list of recent logs is listed below the current migration progress textarea.
-- Clicking a link in the recent logs section will download the log.
+- Clicking a link in the recent logs section will download that log.
 - There are 4 types of logs in the section:
-- 'vmware_migration_TIMESTAMP.log' - These logs show the detail of previous migrations.
-- 'vmware_api.log' (default name) - This log captures the information that VMware returns when the VMs are discovered.
-- 'cs_request.log' (default name) - This log captures the details of the api calls to CloudPlatform.
-- 'help.txt' - This is a help file to explain the different stages the migration progress goes through.
+    - 'vmware_migration_TIMESTAMP.log' - These logs show the details for previous migrations.
+    - 'vmware_api.log' (default name) - This log captures the information that VMware returns when the VMs are discovered (on page load).
+    - 'cs_request.log' (default name) - This log captures the details of the api calls to CloudPlatform.
+    - 'help.txt' - This is a help file to explain the different stages the migration progress goes through.
 
 
 Limitations and special considerations
 --------------------------------------
 - The tool fully supports VMs with SCSI controllers.
-- The tool only partially supports VMs with IDE controllers.  The VM will import correctly, but it will crash on boot due to a problem locating the root partition.
+- The tool only partially supports VMs with IDE controllers.  The VM will import correctly, but it will crash on boot due to a problem locating the root partition.  Manual manipulation is required to complete the migration.
 - The tool supports VMs with both single and multiple disks.
+	- The additional disks will be uploaded to CloudPlatform as data volumes and will be attached to the VM after it launches.
 - The tool supports VMs with spaces in the name ONLY if they show up in the OVFtool vm inventory list
-	- eg: vi://USER:PASSWORD@VMWARE_HOST/DATACENTER/vm
-- If the VM does not show up in the OVFtool vm inventory list, then a different export method is used.  This second attempt will only work if the VMs VMX Path does not have any spaces (other than the space between the datasource and the path).
-- If the VM does not show up in the OVFtool vm inventory list and the VMX Path has spaces, there is now way for the tool to export the VM.
-- When migrating from a more recent version of VMware to a previous version of VMware, you will need to specify the 'max_virtual_hardware_version' setting to reflect the destination VMware version.  The possible settings and the VMware versions they support are listed below.  The default setting is '8'...
+	- eg: vi://USER:PASSWORD@VMWARE_ENDPOINT/DATACENTER/vm
+- If the VM does not show up in the OVFtool vm inventory list, then a different export method is used.  This second attempt will only work if the VMs VMX Path does NOT have any spaces (other than the space between the datasource and the path).
+- If the VM does not show up in the OVFtool vm inventory list and the VMX Path has spaces, there is no way for the tool to export the VM.
+- When migrating from a more recent version of VMware to a previous version of VMware, you will need to specify the 'max_virtual_hardware_version' setting to reflect the destination VMware version.  The possible settings and the respective VMware version supported is listed below.  The default setting is '8'...
 	- 10 - Supports: ESXi 5.5, Fusion 6.x, Workstation 10.x, Player 6.x
 	- 9 - Supports: ESXi 5.1, Fusion 5.x, Workstation 9.x, Player 5.x
 	- 8 - Supports: ESXi 5.0, Fusion 4.x, Workstation 8.x, Player 4.x
@@ -193,6 +194,7 @@ UNDER THE HOOD
 
 The migration states
 --------------------
+- <no state> - The default migration state is an empty string which means the migration process needs to start from the beginning.
 - exported - The VM has been exported and the OVA is ready to be imported.
 - imported - The VM has been imported into CloudPlatform and the upload process has been kicked off.
 - launched - A transition state after the VM is launched in CloudPlatform and before the migration has been cleaned up.
@@ -203,8 +205,8 @@ Migration state management
 --------------------------
 - The state of the migration is stored in the `./running.conf` file.
 - The `./running.conf` file is a superset of the parameters configured in `./settings.conf` and maintains the current state of the migration.
-- If the `./running.conf` file is removed, the migration UI will be reset to its defaults and the `./settings.conf` settings.
-- It is not recommended to modify the `./running.conf` file unless you really understand what the implications are.
+- If the `./running.conf` file is removed, the migration UI will be reset to its defaults plus the contents of the `./settings.conf` file.
+- It is NOT recommended to modify the `./running.conf` file unless you really understand what the implications are.
 - The `./running.conf` includes all of the configuration specified in the `./settings.conf` file, the defaults specified in code as well as:
     - vms - The details for all the discovered VMs and the information stored associated with the VMs durring the migration.
     - cs_objs - The details for the available CloudPlatform objects that VMs can be applied to.
@@ -213,5 +215,4 @@ Migration state management
     - migrate_error - A boolean that tracks if the current migration has errors.
     - migration_timestamp - The timestamp associated with the last migration.
     - active_migration - A boolean to specify if there is a migration currently happening.
-
 
