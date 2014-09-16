@@ -54,7 +54,7 @@ def export_vm(vm_id):
 		vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name']).strip('-')
 		if len(vms[vm_id]['clean_name']) > 63:
 			vms[vm_id]['clean_name'] = vms[vm_id]['clean_name'][:63]
-		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" /mnt/share/vhds' % (
+		cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s/vm/%s" %s' % (
 			'-o --powerOffSource --noSSLVerify --acceptAllEulas --maxVirtualHardwareVersion=%s' % (
 				conf.get('VMWARE', 'max_virtual_hardware_version')),
 			vms[vm_id]['clean_name'],
@@ -62,7 +62,8 @@ def export_vm(vm_id):
 			conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 			conf.get('VMWARE', 'endpoint'),
 			vms[vm_id]['src_dc'],
-			vms[vm_id]['src_name']
+			vms[vm_id]['src_name'],
+			conf.get('FILESERVER', 'files_path')
 		)
 		output = ''
 		try:
@@ -73,7 +74,7 @@ def export_vm(vm_id):
 			log.info('OVFtool output:\n%s' % (e.output))
 			log.info('Initial export attempt failed.  Trying a different export format...')
 			# since the exports have been inconsistent, if the first fails, try this method.
-			cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" /mnt/share/vhds' % (
+			cmd = 'ovftool %s -tt=OVA -n=%s "vi://%s:%s@%s/%s?ds=%s" %s' % (
 				'-o --powerOffSource --noSSLVerify --acceptAllEulas --maxVirtualHardwareVersion=%s' % (
 					conf.get('VMWARE', 'max_virtual_hardware_version')),
 				vms[vm_id]['clean_name'],
@@ -81,7 +82,8 @@ def export_vm(vm_id):
 				conf.get('VMWARE', 'password').replace('@', '%40').replace('\\', '%5c').replace('!', '%21'),
 				conf.get('VMWARE', 'endpoint'),
 				vms[vm_id]['src_dc'],
-				vms[vm_id]['src_path'].replace(' ', '')
+				vms[vm_id]['src_path'].replace(' ', ''),
+				conf.get('FILESERVER', 'files_path')
 			)
 			try:
 				output = subprocess.check_output(cmd, shell=True)
