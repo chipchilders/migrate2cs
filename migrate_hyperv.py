@@ -276,7 +276,10 @@ def do_migration():
 	while len(json.loads(conf.get('STATE', 'started'))) != len(json.loads(conf.get('STATE', 'imported'))) and not has_error:
 		for i, vm in enumerate(vms):
 			vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
-			if vm_id not in json.loads(conf.get('STATE', 'started')):
+			isAVm = 'cs_service_offering' in vm
+			print("__________%s is a vm: %s________________________" % (vm_id, isAVm))
+			if vm_id not in json.loads(conf.get('STATE', 'started')) and 'cs_service_offering' in vm:
+				print("__________processing vm: %s________________________" % vm_id)
 				# check if the template has finished downloading...
 				template = cs.request(dict({
 					'command':'listTemplates', 
