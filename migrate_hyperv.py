@@ -164,8 +164,8 @@ def do_migration():
 						conf.read("./running.conf") # make sure we have everything from this file already
 						exported = json.loads(conf.get('STATE', 'exported'))
 						exported.append(vm_out['id'])
-						conf.set('STATE', 'exported', json.dumps(exported))
-						conf.set('STATE', 'vms', json.dumps(vms))
+						conf.set('STATE', 'exported', json.dumps(exported, indent=4, sort_keys=True))
+						conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
 						with open('running.conf', 'wb') as f:
 							conf.write(f) # update the file to include the changes we have made
 
@@ -261,11 +261,10 @@ def do_migration():
 				conf.read("./running.conf") # make sure we have everything from this file already
 				imported = json.loads(conf.get('STATE', 'imported'))
 				imported.append(vm['id'])
-				conf.set('STATE', 'imported', json.dumps(imported))
-				conf.set('STATE', 'vms', json.dumps(vms))
+				conf.set('STATE', 'imported', json.dumps(imported, indent=4, sort_keys=True))
+				conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
 				with open('running.conf', 'wb') as f:
 					conf.write(f) # update the file to include the changes we have made
-
 
 	print('\n\n----------------------------\n-- LAUNCHING IMPORTED VMS --\n----------------------------')
 	# go through the imported VMs and start them and attach their volumes if they have any
