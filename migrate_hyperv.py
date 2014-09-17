@@ -135,13 +135,13 @@ def do_migration():
 										})
 									print('Copying drive %s' % (disk['DiskImage']))
 									exported = True
-									#result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
-									#if ok:
-									#	print('Finished copy...')
-									#	exported = True
-									#else:
-									#	print('Copy failed...')
-									#	print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+									result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
+									if ok:
+										print('Finished copy...')
+										exported = True
+									else:
+										print('Copy failed...')
+										print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 						else:
 							print('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
 							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
