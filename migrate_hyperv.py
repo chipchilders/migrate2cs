@@ -334,23 +334,51 @@ def do_migration():
 								conf.read("./running.conf") # make sure we have everything from this file already
 								started = json.loads(conf.get('STATE', 'started'))
 								started.append(vm['id'])
-								conf.set('STATE', 'started', json.dumps(started))
-								conf.set('STATE', 'vms', json.dumps(vms))
+								conf.set('STATE', 'started', json.dumps(started, indent=4, sort_keys=True))
+								conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
 								with open('running.conf', 'wb') as f:
 									conf.write(f) # update the file to include the changes we have made
 
 								# attach the data volumes to it if there are data volumes
-								#if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0:
-								#	attach_volume = cs.request(dict({
-								#	'command':'attachVolume',
-								#	'displayname':vm['hyperv_vm_name'].replace(' ', '-'),
-								#	'templateid':vm['cs_template_id'],
-								#	'serviceofferingid':vm['cs_service_offering'],
-								#	'networkids':vm['cs_network'],
-								#	'zoneid':vm['cs_zone'],
-								#	'domainid':vm['cs_domain'],
-								#	'account':vm['cs_account']
-								#}))
+								if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0:
+									for volume_id in vm['cs_volumes']:
+										print('Attaching vol:%s to vm:%s ...' % (volume_id, cs_vm['jobresult']['virtualmachine']['id']))
+										attach = cs.request(dict({
+										'id':volume_id,
+										'command':'attachVolume',
+										'virtualmachineid':cs_vm['jobresult']['virtualmachine']['id']
+										}))
+
+
+										if attach and 'jobstatus' in attach and attach['jobstatus']:
+											print('Successfully attached volume %s' % (volume_id))
+										else:
+											print('Failed to attach volume %s' % (volume_id))
+											has_error = True
+											conf.read(['./running.conf'])
+											conf.set('STATE', 'migrate_error', 'True')
+											conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
+											with open('running.conf', 'wb') as f:
+												conf.write(f) # update the file to include the changes we have made
+									if not has_error:
+										print('Rebooting the VM to make the attached volumes visible...')
+										reboot = cs.request(dict({
+											'command':'rebootVirtualMachine', 
+											'id':cs_vm['jobresult']['virtualmachine']['id']}))
+										if reboot and 'jobstatus' in reboot and reboot['jobstatus']:
+											print('VM rebooted')
+										else:
+											print('VM did not reboot.  Check the VM to make sure it came up correctly.')
+								if not has_error:
+									### Update the running.conf file
+									conf.read(['./running.conf']) # make sure we have everything from this file already
+									vms[i]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
+									vms[i]['state'] = 'launched'
+									conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
+									with open('running.conf', 'wb') as f:
+										conf.write(f) # update the file to include the changes we have made
+
+
 							elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
 								print('%s failed to start!  ERROR: %s' % (vm['hyperv_vm_name'], cs_vm['jobresult']['errortext']))
 								has_error = True
