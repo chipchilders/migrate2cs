@@ -199,6 +199,9 @@ def do_migration():
 			if 'cs_network' not in vm and conf.has_option('CLOUDSTACK', 'default_network'):
 				vm['cs_network'] = conf.get('CLOUDSTACK', 'default_network')
 
+			if 'cs_additional_networks' not in vm and conf.has_option('CLOUDSTACK', 'additional_networks'):
+				vm['cs_additional_networks'] = conf.get('CLOUDSTACK', 'additional_networks')
+
 			if 'cs_service_offering' not in vm and conf.has_option('CLOUDSTACK', 'default_service_offering'):
 				vm['cs_service_offering'] = conf.get('CLOUDSTACK', 'default_service_offering')
 
@@ -314,8 +317,13 @@ def do_migration():
 								'account':vm['cs_account']
 							})
 							if vm['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
-								cmd['networkids'] = vm['cs_network']
+								all_networkIds = [vm['cs_network'], vm['cs_additional_networks']]
+								cmd['networkids'] = ",".join(all_networkIds)
+								print("_____networks: %s_________" % cmd['networkids'])
+							
 							cs_vm = cs.request(cmd) # launch the VM
+
+
 							if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
 								#print('VM \'%s\' started...' % (template['template'][0]['id']))
 								#vm['cs_template_id'] = template['template'][0]['id']
