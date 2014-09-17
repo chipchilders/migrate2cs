@@ -350,7 +350,7 @@ def do_migration():
 								
 
 					else:
-						print('%s: %s is waiting for template, current state: %s'% (poll, vm['hyperv_vm_name'], template['template'][0]['status']))
+						print('%s: %s is waiting for template, current state: %s'% (poll, vm['hyperv_vm_name'], template['template'][0]['isready']))
 		print('... sleeping ...')
 		poll = poll + 1
 		time.sleep(10)
