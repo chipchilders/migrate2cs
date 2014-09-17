@@ -214,7 +214,7 @@ def do_migration():
 						'name':vm['disks'][0]['name'].replace(' ', '-'),
 						'displaytext':vm['disks'][0]['name'],
 						'format':'VHD',
-						'hypervisor':'XenServer',
+						'hypervisor':'Hyperv',
 						'ostypeid':'138', # None
 						'url':vm['disks'][0]['url'],
 						'zoneid':vm['cs_zone'],
