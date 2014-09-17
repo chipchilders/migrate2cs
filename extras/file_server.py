@@ -48,6 +48,12 @@ def serve_file(filepath):
 	bottle.response.set_header("Content-Transfer-Encoding", "binary")
 	return bottle.static_file(filepath, root='./', download=True)
 
+
+from bottle import error
+@error(404)
+def error404(error):
+	return 'File not found.'
+	
 # start the server
 bottle.run(
 	server='cherrypy', 
