@@ -1,10 +1,10 @@
-[
-	{
+{
+	"0": {
 		"hyperv_vm_name":"Windows_Server_2003",
 		"hyperv_server":"HYPERV1"
 	},
-	{
-		"hyperv_vm_name":"CentOS65",
+	"1": {
+		"hyperv_vm_name":"Multidisk_CentOS65",
 		"hyperv_server":"HYPERV1"
 	}
-]
+}
