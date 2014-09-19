@@ -39,7 +39,7 @@ def cs_discover_accounts():
 		bottle.abort(500, "Could not get the CloudPlatform accounts.")
 
 	### Update the running.conf file
-	conf.set('STATE', 'cs_objs', json.dumps(obj))
+	conf.set('STATE', 'cs_objs', json.dumps(obj, indent=4))
 	with open('running.conf', 'wb') as f:
 		conf.write(f) # update the file to include the changes we have made
 	return obj
