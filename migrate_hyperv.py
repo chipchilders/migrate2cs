@@ -22,7 +22,7 @@ conf.set('HYPERV', 'migration_input_file', './input/migrate_hyperv_input.json')
 conf.set('HYPERV', 'pscp_exe', 'C:\pscp.exe')
 
 # read in config files if they exists
-conf.read(['./settings.conf', './running.conf'])
+conf.read(['./settings-hyperv.conf', './running-hyperv.conf'])
 
 if not conf.has_section('STATE'):
 	conf.add_section('STATE') # STATE config section to maintain state of the running process
@@ -160,13 +160,13 @@ def do_migration():
 					if exported:
 						vms.append(vm_out)
 
-						### Update the running.conf file
-						conf.read("./running.conf") # make sure we have everything from this file already
+						### Update the running-hyperv.conf file
+						conf.read("./running-hyperv.conf") # make sure we have everything from this file already
 						exported = json.loads(conf.get('STATE', 'exported'))
 						exported.append(vm_out['id'])
-						conf.set('STATE', 'exported', json.dumps(exported, indent=4, sort_keys=True))
-						conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
-						with open('running.conf', 'wb') as f:
+						conf.set('STATE', 'exported', json.dumps(exported, indent=4))
+						conf.set('STATE', 'vms', json.dumps(vms, indent=4))
+						with open('running-hyperv.conf', 'wb') as f:
 							conf.write(f) # update the file to include the changes we have made
 
 	print "\nCurrent VM Objects:"
@@ -260,13 +260,13 @@ def do_migration():
 				print('We are missing settings fields for %s' % (vm['hyperv_vm_name']))
 
 			if imported:
-				### Update the running.conf file
-				conf.read("./running.conf") # make sure we have everything from this file already
+				### Update the running-hyperv.conf file
+				conf.read("./running-hyperv.conf") # make sure we have everything from this file already
 				imported = json.loads(conf.get('STATE', 'imported'))
 				imported.append(vm['id'])
-				conf.set('STATE', 'imported', json.dumps(imported, indent=4, sort_keys=True))
-				conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
-				with open('running.conf', 'wb') as f:
+				conf.set('STATE', 'imported', json.dumps(imported, indent=4))
+				conf.set('STATE', 'vms', json.dumps(vms, indent=4))
+				with open('running-hyperv.conf', 'wb') as f:
 					conf.write(f) # update the file to include the changes we have made
 
 	print('\n\n----------------------------\n-- LAUNCHING IMPORTED VMS --\n----------------------------')
@@ -330,13 +330,13 @@ def do_migration():
 							if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
 								#print('VM \'%s\' started...' % (template['template'][0]['id']))
 								#vm['cs_template_id'] = template['template'][0]['id']
-								### Update the running.conf file
-								conf.read("./running.conf") # make sure we have everything from this file already
+								### Update the running-hyperv.conf file
+								conf.read("./running-hyperv.conf") # make sure we have everything from this file already
 								started = json.loads(conf.get('STATE', 'started'))
 								started.append(vm['id'])
-								conf.set('STATE', 'started', json.dumps(started, indent=4, sort_keys=True))
-								conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
-								with open('running.conf', 'wb') as f:
+								conf.set('STATE', 'started', json.dumps(started, indent=4))
+								conf.set('STATE', 'vms', json.dumps(vms, indent=4))
+								with open('running-hyperv.conf', 'wb') as f:
 									conf.write(f) # update the file to include the changes we have made
 
 								# attach the data volumes to it if there are data volumes
@@ -355,10 +355,10 @@ def do_migration():
 										else:
 											print('Failed to attach volume %s' % (volume_id))
 											has_error = True
-											conf.read(['./running.conf'])
+											conf.read(['./running-hyperv.conf'])
 											conf.set('STATE', 'migrate_error', 'True')
-											conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
-											with open('running.conf', 'wb') as f:
+											conf.set('STATE', 'vms', json.dumps(vms, indent=4))
+											with open('running-hyperv.conf', 'wb') as f:
 												conf.write(f) # update the file to include the changes we have made
 									if not has_error:
 										print('Rebooting the VM to make the attached volumes visible...')
@@ -370,12 +370,12 @@ def do_migration():
 										else:
 											print('VM did not reboot.  Check the VM to make sure it came up correctly.')
 								if not has_error:
-									### Update the running.conf file
-									conf.read(['./running.conf']) # make sure we have everything from this file already
+									### Update the running-hyperv.conf file
+									conf.read(['./running-hyperv.conf']) # make sure we have everything from this file already
 									vms[i]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
 									vms[i]['state'] = 'launched'
-									conf.set('STATE', 'vms', json.dumps(vms, indent=4, sort_keys=True))
-									with open('running.conf', 'wb') as f:
+									conf.set('STATE', 'vms', json.dumps(vms, indent=4))
+									with open('running-hyperv.conf', 'wb') as f:
 										conf.write(f) # update the file to include the changes we have made
 
 
@@ -393,8 +393,8 @@ def do_migration():
 		poll = poll + 1
 		time.sleep(10)
 
-	### clean up the running.conf file...
-	#os.remove('./running.conf')
+	### clean up the running-hyperv.conf file...
+	#os.remove('./running-hyperv.conf')
 
 
 if __name__ == "__main__":
