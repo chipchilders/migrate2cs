@@ -9,17 +9,35 @@ import os
 import pprint
 import subprocess
 
+currHypervisorType = "" # need to replace this global variable, for now let's just make this common works for different setting-<hypervisor>'+currHypervisorType+'.conf ....
+def initCommon(hypervisorType):
+	global currHypervisorType
+	if not currHypervisorType:
+		currHypervisorType = "-xxx" + hypervisorType
+	else:
+		raise RuntimeError("currHypervisorType has already been set.")
+
+	print("===================1===============%s==================" % currHypervisorType)
+
 conf = ConfigParser()
 # read in config files if they exist
-conf.read(['./settings.conf', './running.conf'])
+conf.read(['./settings'+currHypervisorType+'.conf', './running'+currHypervisorType+'.conf'])
 
 if not conf.has_section('STATE'):
 	conf.add_section('STATE') # STATE config section to maintain state of the running process
 
+
 ###  FUNCTIONS  ###
 
+
 def cs_discover_accounts():
-	conf.read(['./running.conf'])
+	print("==================2================%s==================" % currHypervisorType)
+	runningConfigName = './running'+currHypervisorType+'.conf'
+	conf.read(['./running'+currHypervisorType+'.conf'])
+	pprint.pprint(conf.items)
+	print("==================reading ================%s==================" % runningConfigName)
+	conf.read([runningConfigName]);
+	pprint.pprint(conf.items)
 	if conf.has_option('STATE', 'cs_objs'):
 		obj = json.loads(conf.get('STATE', 'cs_objs'))
 	else:
@@ -40,13 +58,13 @@ def cs_discover_accounts():
 
 	### Update the running.conf file
 	conf.set('STATE', 'cs_objs', json.dumps(obj, indent=4))
-	with open('running.conf', 'wb') as f:
+	with open('running'+currHypervisorType+'.conf', 'wb') as f:
 		conf.write(f) # update the file to include the changes we have made
 	return obj
 
 
 def cs_discover_account_resources(account):
-	conf.read(['./running.conf'])
+	conf.read(['running-cloudstack.conf', './running'+currHypervisorType+'.conf'])
 	if conf.has_option('STATE', 'cs_objs'):
 		obj = json.loads(conf.get('STATE', 'cs_objs'))
 	else:
@@ -119,7 +137,7 @@ def cs_discover_account_resources(account):
 
 	### Update the running.conf file
 	conf.set('STATE', 'cs_objs', json.dumps(obj))
-	with open('running.conf', 'wb') as f:
+	with open('running'+currHypervisorType+'.conf', 'wb') as f:
 		conf.write(f) # update the file to include the changes we have made
 	return obj
 
@@ -155,7 +173,7 @@ def discover_account():
 @bottle.route('/vms/save', method='POST')
 def save_vms():
 	if bottle.request.params.vms:
-		conf.read(['./running.conf'])
+		conf.read(['./running'+currHypervisorType+'.conf'])
 		conf.set('STATE', 'vms', bottle.request.params.vms)
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
@@ -167,7 +185,7 @@ def save_vms():
 # pull the vms from the running config and refresh the UI
 @bottle.route('/vms/refresh')
 def refresh_vms():
-	conf.read(['./running.conf'])
+	conf.read(['./running'+currHypervisorType+'.conf'])
 	vms = json.loads(conf.get('STATE', 'vms'))
 	return json.dumps(vms)
 

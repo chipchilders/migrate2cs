@@ -25,6 +25,9 @@ import os
 # import sys
 import time
 
+from xml.etree import ElementTree as ET
+import re
+
 # setup the conf object and set default values...
 conf = ConfigParser()
 conf.add_section('HYPERV')
@@ -37,6 +40,8 @@ conf.set('WEBSERVER', 'debug', 'False')
 conf.set('WEBSERVER', 'port', '8080')
 conf.add_section('STATE') # STATE config section to maintain state of the running process
 conf.set('STATE', 'active_migration', 'False')
+conf.set('STATE', 'migration_timestamp', int(time.time()))
+
 # read in config files if they exist
 conf.read(['./settings-hyperv.conf', './running-hyperv.conf'])
 
@@ -54,6 +59,10 @@ if not conf.has_option('STATE', 'started'):
 if not conf.has_section('FILESERVER') or not conf.has_option('FILESERVER', 'files_path'):
 	sys.exit("Config required in settings-hyperv.conf: [FILESERVER] -> files_path")
 
+with open('running-hyperv.conf', 'wb') as f:
+	conf.write(f) # update the file to include the changes we have made
+
+
 # add server logging
 log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 log = logging.getLogger()
@@ -68,6 +77,12 @@ log.addHandler(log_file_handler)
 
 
 def discover_src_vms():
+	import migrate_hyperv
+	with open('running-hyperv.conf', 'wb') as f:
+		conf.write(f) # update the file to include the changes we have made
+	return migrate_hyperv.discover_vms()
+
+def discover_src_vms_old():
 	conf.read(['./running-hyperv.conf'])
 	pprint.pprint(conf)
 	if conf.has_option('STATE', 'vms'):
@@ -202,8 +217,9 @@ def index():
 	variables = {}
 	conf.read(['./running-hyperv.conf'])
 	if not conf.getboolean('STATE', 'active_migration'):
-		open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # refresh the cs_request.log on reloads
-		open(conf.get('HYPERV', 'log_file'), 'w').close() # refresh the hyperv_api.log on reloads
+		# open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # refresh the cs_request.log on reloads
+		# open(conf.get('HYPERV', 'log_file'), 'w').close() # refresh the hyperv_api.log on reloads
+		initCommon('hyperv')
 		variables['cs_objs'] = json.dumps(cs_discover_accounts())
 		vms, order = discover_src_vms()
 		variables['vms'] = json.dumps(vms, indent=4)
@@ -225,7 +241,7 @@ def start_migration():
 		conf.read(['./running-hyperv.conf'])
 		conf.set('STATE', 'active_migration', 'True')
 		conf.set('STATE', 'migrate', bottle.request.params.migrate)
-		conf.set('STATE', 'migration_timestamp', int(bottle.request.params.timestamp)/1000)
+		# conf.set('STATE', 'migration_timestamp', int(bottle.request.params.timestamp)/1000)
 		with open('running-hyperv.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
 		subprocess.Popen(['python', 'migrate_hyperv.py'])

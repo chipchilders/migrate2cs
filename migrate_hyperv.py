@@ -14,6 +14,8 @@ import os
 import pprint
 import sys
 import time
+import logging
+
 
 # setup the conf object and set default values...
 conf = ConfigParser()
@@ -32,8 +34,146 @@ if not conf.has_option('STATE', 'imported'):
 	conf.set('STATE', 'imported', '[]') # parsed with: json.loads(conf.get('STATE', 'imported'))
 if not conf.has_option('STATE', 'started'):
 	conf.set('STATE', 'started', '[]') # parsed with: json.loads(conf.get('STATE', 'started'))
+if not conf.has_option('STATE', 'migrate'):
+	conf.set('STATE', 'migrate', '[]') # parsed with: json.loads(conf.get('STATE', 'migrate'))
 if not conf.has_option('STATE', 'vms'):
-	conf.set('STATE', 'vms', '[]') # parsed with: json.loads(conf.get('STATE', 'vms'))
+	conf.set('STATE', 'vms', '{}') # parsed with: json.loads(conf.get('STATE', 'vms'))
+
+		
+conf.set('HYPERV', 'migration_log_file', './logs/hyperv_migration_%s.log' % (conf.get('STATE', 'migration_timestamp')))
+with open('running-hyperv.conf', 'wb') as f:
+	conf.write(f) # update the file to include the changes we have made
+
+# add migration logging
+log = logging.getLogger()
+log_handler = logging.FileHandler(conf.get('HYPERV', 'migration_log_file'))
+log_format = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
+log_handler.setFormatter(log_format)
+log.addHandler(log_handler) 
+log.setLevel(logging.INFO)
+conf.set('STATE', 'migrate_error', 'False')
+
+def get_vm_info(vm_id, vm_in):
+	# make sure the minimum fields were entered and they have not been processed already
+	if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in and vm_id not in json.loads(conf.get('STATE', 'exported')):
+		objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+		if objs and ok: # make sure it found the specified VM
+			print('\nGETTING VM INFO %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
+
+			vm_out = vm_in
+			vm_raw = objs[0]
+			vm_out['id'] = vm_id
+			
+			vm_out['src_name'] = vm_raw['ElementName']
+			vm_out['src_type'] = vm_raw['ElementName']
+
+			# get cores, cpus
+			cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+			if ok:
+				vm_out['src_cpus'] = int(cpu[0]['ProcessorsPerSocket']) * int(cpu[0]['SocketCount'])
+			else:
+				print('Get-VMCPUCount powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+				print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+
+			# get memory
+			memory, ok = hyperv.powershell('Get-VMMemory -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+			if ok:
+				vm_out['src_memory'] = int(memory[0]['Reservation'])
+			else:
+				print('Get-VMMemory powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+				print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+
+			# record their starting state and bring down if running
+			if int(vm_raw['EnabledState']) == HyperV.VM_RUNNING:
+				vm_out['state'] = 'running'
+				print('VM %s is Running' % (vm_in['hyperv_vm_name']))
+			elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
+				vm_out['state'] = 'stopped'
+				print('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
+			else: # this should be improved...
+				vm_out['state'] = 'unknown'
+				print('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
+
+			if (vm_out['state'] == 'running' and ok) or vm_out['state'] == 'stopped':
+				disks, ok = hyperv.powershell('Get-VMDisk -VM "%s"' % (vm_in['hyperv_vm_name']))
+				if ok:
+					vm_out['src_disks'] = []
+					for disk in disks:
+						if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
+							vm_out['src_disks'].append({
+								'size': '0',
+								'label': disk['DriveName'],
+								'name':ntpath.split(disk['DiskImage'])[1].replace(' ', '-').split('.')[0],
+								'path':'%s://%s:%s%s%s' % (
+									'https' if conf.get('FILESERVER', 'port') == '443' else 'http',
+									conf.get('FILESERVER', 'host'),
+									conf.get('FILESERVER', 'port'),
+									conf.get('FILESERVER', 'base_uri'),
+									ntpath.split(disk['DiskImage'])[1].replace(' ', '-')
+									)
+								})
+				else:
+					print('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+					print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+	return vm_out
+
+def discover_vms():
+	conf.read(['./running-hyperv.conf'])
+	if conf.has_option('STATE', 'vms'):
+		# initialize the 'vms' variable from the existing config...
+		vms = json.loads(conf.get('STATE', 'vms'))
+	else:
+		vms = {}
+
+	if conf.has_option('STATE', 'vm_order'):
+		order = json.loads(conf.get('STATE', 'vm_order'))
+	else:
+		order = []
+
+	with open(conf.get('HYPERV', 'log_file'), 'a') as f:
+		f.write('\n\nDISCOVERING HYPERV...\n')
+
+	discovered = [] # vms of this discovery.  we will remove the vm's from 'vms' later if they are not in this array.
+
+	vm_input = {}
+	if os.path.exists(conf.get('HYPERV', 'migration_input_file')):
+		with open(conf.get('HYPERV', 'migration_input_file'), 'r') as f:
+			try:
+				vm_input = json.load(f)
+			except:
+				print sys.exc_info()
+				sys.exit("Error in the formatting of '%s'" % (conf.get('HYPERV', 'migration_input_file')))
+
+	print('\n-----------------------\n-- discovering vms... --\n-----------------------')
+	# collect data about the VMs from HyperV and populate a list of VMs
+
+	if vm_input: # make sure there is data in the file
+		for vm_key in vm_input: # loop through the vms in the file
+			vm_in = vm_input[vm_key]
+			pprint.pprint(vm_in)
+			vm_id = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
+			if vm_id not in order:
+				order.append(vm_id)
+			if vm_id not in vms:
+				vms[vm_id] = {}
+
+			vms[vm_id] = get_vm_info(vm_id, vm_in)
+			discovered.append(vm_id)
+					
+	# loop through the 'vms' and remove any that were not discovered in this pass...
+	for vm_id in vms.keys():
+		if vm_id not in discovered:
+			del vms[vm_id] # no longer a valid VM, so remove it...
+			if vm_id in order: # remove the vm from the order list as well if it exists...
+				order.remove(vm_id)
+
+	### Update the running-hyperv.conf file
+	conf.set('STATE', 'vms', json.dumps(vms, indent=4))
+	conf.set('STATE', 'vm_order', json.dumps(order, indent=4))
+	with open('running-hyperv.conf', 'wb') as f:
+		conf.write(f) # update the file to include the changes we have made
+
+	return vms, order
 
 
 # copy vhd files to the file server
@@ -49,129 +189,53 @@ def copy_vhd_to_file_server(vhd_path, vhd_name):
 	))
 
 
-# run the actual migration
-def do_migration():
-	# comment out the following line to keep a history of the requests over multiple runs of this file.
-	open(conf.get('HYPERV', 'log_file'), 'w').close() # cleans the powershell requests log before execution so it only includes this run.
-	open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # cleans the cloudstack requests log before execution so it only includes this run.
-
-	vm_input = []
-	if os.path.exists(conf.get('HYPERV', 'migration_input_file')):
-		with open(conf.get('HYPERV', 'migration_input_file'), 'r') as f:
-			try:
-				vm_input = json.load(f)
-			except:
-				print sys.exc_info()
-				sys.exit("Error in the formatting of '%s'" % (conf.get('HYPERV', 'migration_input_file')))
-
+def export_one_vm(vm_id):
 	print('\n-----------------------\n-- RUNNING VM EXPORT --\n-----------------------')
-	# collect data about the VMs from HyperV and populate a list of VMs
-
-	# initialize the 'vms' variable from the existing config...
-	vms = json.loads(conf.get('STATE', 'vms'))
-
-	if vm_input: # make sure there is data in the file
-		for vm_in in vm_input: # loop through the vms in the file
+	conf.read(['./running.conf'])
+	if not conf.getboolean('STATE', 'migrate_error'):
+		# initialize the 'vms' variable from the existing config...
+		vms = json.loads(conf.get('STATE', 'vms'))
+		log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
 			# make sure the minimum fields were entered and they have not been processed already
-			vm_id = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
-			if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in and vm_id not in json.loads(conf.get('STATE', 'exported')):
-				objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
-				if objs and ok: # make sure it found the specified VM
-					print('\nEXPORTING %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
 
-					exported = False
-					vm_raw = objs[0]
-					vm_out = vm_in
-					vm_out['id'] = vm_id
-					
-					# get cores
-					cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+		if (vms[vm_id]['state'] == 'running' and ok) or vms[vm_id]['state'] == 'stopped':
+			for disk in disks:
+				if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
+					print('Copying drive %s' % (disk['DiskImage']))
+					exported = True
+					result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
 					if ok:
-						vm_out['cores'] = int(cpu[0]['ProcessorsPerSocket']) * int(cpu[0]['SocketCount'])
+						print('Finished copy...')
+						exported = True
 					else:
-						print('Get-VMCPUCount powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+						print('Copy failed...')
 						print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 
-					# get memory
-					memory, ok = hyperv.powershell('Get-VMMemory -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
-					if ok:
-						vm_out['memory'] = int(memory[0]['Reservation'])
-					else:
-						print('Get-VMMemory powershell command failed on %s' % (vm_in['hyperv_vm_name']))
-						print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
+		# bring the machines back up that were running now that we copied their disks
+		if vms[vm_id]['state'] == 'running':
+			status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+			if ok:
+				print('Re-Started VM %s' % (vm_in['hyperv_vm_name']))
+			else:
+				print('Failed to restart the server.')
+				print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
 
-					# record their starting state and bring down if running
-					if int(vm_raw['EnabledState']) == HyperV.VM_RUNNING:
-						vm_out['state'] = 'running'
-						print('VM %s is Running' % (vm_in['hyperv_vm_name']))
-						status, ok = hyperv.powershell('Stop-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
-						if ok:
-							print('Stopped %s' % (vm_in['hyperv_vm_name']))
-						else:
-							print('Stop-VM powershell command failed on %s' % (vm_in['hyperv_vm_name']))
-							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
-					elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
-						vm_out['state'] = 'stopped'
-						print('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
-					else: # this should be improved...
-						vm_out['state'] = 'unknown'
-						print('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
+		print('Finished exporting %s' % (vm_in['hyperv_vm_name']))
 
-					if (vm_out['state'] == 'running' and ok) or vm_out['state'] == 'stopped':
-						disks, ok = hyperv.powershell('Get-VMDisk -VM "%s"' % (vm_in['hyperv_vm_name']))
-						if ok:
-							vm_out['disks'] = []
-							for disk in disks:
-								if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
-									vm_out['disks'].append({
-										'name':ntpath.split(disk['DiskImage'])[1].replace(' ', '-').split('.')[0],
-										'url':'%s://%s:%s%s%s' % (
-											'https' if conf.get('FILESERVER', 'port') == '443' else 'http',
-											conf.get('FILESERVER', 'host'),
-											conf.get('FILESERVER', 'port'),
-											conf.get('FILESERVER', 'base_uri'),
-											ntpath.split(disk['DiskImage'])[1].replace(' ', '-')
-											)
-										})
-									print('Copying drive %s' % (disk['DiskImage']))
-									exported = True
-									result, ok = copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
-									if ok:
-										print('Finished copy...')
-										exported = True
-									else:
-										print('Copy failed...')
-										print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
-						else:
-							print('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
-							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
-
-					# bring the machines back up that were running now that we copied their disks
-					if vm_out['state'] == 'running':
-						status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
-						if ok:
-							print('Re-Started VM %s' % (vm_in['hyperv_vm_name']))
-						else:
-							print('Failed to restart the server.')
-							print('ERROR: Check the "%s" log for details' % (conf.get('HYPERV', 'log_file')))
-
-					print('Finished exporting %s' % (vm_in['hyperv_vm_name']))
-
-					if exported:
-						vms.append(vm_out)
-
-						### Update the running-hyperv.conf file
-						conf.read("./running-hyperv.conf") # make sure we have everything from this file already
-						exported = json.loads(conf.get('STATE', 'exported'))
-						exported.append(vm_out['id'])
-						conf.set('STATE', 'exported', json.dumps(exported, indent=4))
-						conf.set('STATE', 'vms', json.dumps(vms, indent=4))
-						with open('running-hyperv.conf', 'wb') as f:
-							conf.write(f) # update the file to include the changes we have made
+		if exported:
+			### Update the running-hyperv.conf file
+			conf.read("./running-hyperv.conf") # make sure we have everything from this file already
+			exported = json.loads(conf.get('STATE', 'exported'))
+			exported.append(vms[vm_id]['id'])
+			conf.set('STATE', 'exported', json.dumps(exported, indent=4))
+			conf.set('STATE', 'vms[vm_id]', json.dumps(vms[vm_id], indent=4))
+			with open('running-hyperv.conf', 'wb') as f:
+				conf.write(f) # update the file to include the changes we have made
 
 	print "\nCurrent VM Objects:"
-	pprint.pprint(vms)
+	pprint.pprint(vms[vm_id])
 
+def import_vm(vm_id):
 	print('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
 	# go through the VMs and import them into CS
 	for i, vm in enumerate(vms):
@@ -269,6 +333,9 @@ def do_migration():
 				with open('running-hyperv.conf', 'wb') as f:
 					conf.write(f) # update the file to include the changes we have made
 
+
+# run the actual migration
+def launch_vm(vm_id):
 	print('\n\n----------------------------\n-- LAUNCHING IMPORTED VMS --\n----------------------------')
 	# go through the imported VMs and start them and attach their volumes if they have any
 	poll = 1

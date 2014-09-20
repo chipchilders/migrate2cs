@@ -25,13 +25,13 @@ conf.set('CLOUDSTACK', 'logging', 'True')
 conf.set('CLOUDSTACK', 'log_file', './logs/cs_request.log')
 
 # read in config if it exists
-conf.read("./settings.conf")
+conf.read("./settings-cloudstack.conf")
 
 # require an 'api_key' and a 'secret_key' to use this lib
 if not conf.has_option('CLOUDSTACK', 'api_key'):
-	sys.exit("Config required in settings.conf: [CLOUDSTACK] -> api_key")
+	sys.exit("Config required in settings-cloudstack.conf: [CLOUDSTACK] -> api_key")
 if not conf.has_option('CLOUDSTACK', 'secret_key'):
-	sys.exit("Config required in settings.conf: [CLOUDSTACK] -> secret_key")
+	sys.exit("Config required in settings-cloudstack.conf: [CLOUDSTACK] -> secret_key")
 
 
 class CloudStack(object):
@@ -125,8 +125,8 @@ cs = CloudStack(
 	logging=conf.getboolean('CLOUDSTACK', 'logging'), 
 	async_poll_interval=conf.getint('CLOUDSTACK', 'async_poll_interval'))
 
-### Update the running.conf file
-conf.read("./running.conf") # make sure we have everything from this file already
-with open('running.conf', 'wb') as f:
+### Update the running-cloudstack.conf file
+conf.read("./running-cloudstack.conf") # make sure we have everything from this file already
+with open('running-cloudstack.conf', 'wb') as f:
 	conf.write(f) # update the file to include any changes we have made
 

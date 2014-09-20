@@ -16,15 +16,15 @@ conf.set('HYPERV', 'logging', 'True')
 conf.set('HYPERV', 'log_file', './logs/hyperv_ps.log')
 
 # read in config if it exists
-conf.read("./settings.conf")
+conf.read("./settings-hyperv.conf")
 
 # require 'endpoint', 'username' and 'password' to use this lib
 if not conf.has_option('HYPERV', 'endpoint'):
-	sys.exit("Config required in settings.conf: [HYPERV] -> endpoint")
+	sys.exit("Config required in settings-hyperv.conf: [HYPERV] -> endpoint")
 if not conf.has_option('HYPERV', 'username'):
-	sys.exit("Config required in settings.conf: [HYPERV] -> username")
+	sys.exit("Config required in settings-hyperv.conf: [HYPERV] -> username")
 if not conf.has_option('HYPERV', 'password'):
-	sys.exit("Config required in settings.conf: [HYPERV] -> password")
+	sys.exit("Config required in settings-hyperv.conf: [HYPERV] -> password")
 
 class HyperV:
 	VM_RUNNING = 2
@@ -70,8 +70,8 @@ class HyperV:
 ### Set the hyperv object to be used elsewhere
 hyperv = HyperV(conf.get('HYPERV', 'endpoint'), conf.get('HYPERV', 'username'), conf.get('HYPERV', 'password'))
 
-### Update the running.conf file
-conf.read("./running.conf") # make sure we have everything from this file already
-with open('running.conf', 'wb') as f:
+### Update the running-hyperv.conf file
+conf.read("./running-hyperv.conf") # make sure we have everything from this file already
+with open('running-hyperv.conf', 'wb') as f:
 	conf.write(f) # update the file to include any changes we have made
 
