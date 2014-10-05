@@ -101,8 +101,11 @@ def get_migration_log():
 # pull the vms from the running config and refresh the UI
 @bottle.route('/vms')
 def fetchVms():
+	# variables = {}
 	vms, order = hyperv_migrator.discover_vms()
-	return json.dumps([vms, order])
+	# variables['vms'] = vms
+	# variables['vm_order'] = order
+	return json.dumps({'vms': vms, 'vm_order': order})
 
 
 confMgr = setup()

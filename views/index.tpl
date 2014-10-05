@@ -483,8 +483,8 @@
           url: "/vms",
           success: function(data) {
             vms_and_order = JSON.parse(data);
-            vms = vms_and_order[0]
-            vm_order = vms_and_order[1]
+            vms = vms_and_order['vms']
+            vm_order = vms_and_order['vm_order']
             build_vm_list(); // add the vms again
           }
         });
