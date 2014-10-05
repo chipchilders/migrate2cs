@@ -6,7 +6,7 @@
 from lib.hyperv import HyperV # the class
 from lib.hyperv import hyperv # the connection
 import lib.cloudstack
-# from lib.cloudstack import cs
+from lib.cloudstack import cs
 import json
 import hashlib
 import ntpath
@@ -14,6 +14,7 @@ import os
 import pprint
 import sys
 import time
+import re
 import lib.config_manager
 from lib.config_manager import ConfigManager
 import common_services
@@ -42,7 +43,7 @@ class HypverMigrator:
 			self.confMgr = ConfigManager(configFile, persistentStore, defaultHypervConfig)
 
 		self.confMgr.addOptionsToSection('CLOUDSTACK', lib.cloudstack.getCloudStackConfig()) #let's put all the running configs in the same persistent store
-		log = common_services.createMigrationLog(self.confMgr)
+		self.log = common_services.createMigrationLog(self.confMgr)
 
 	def updateVms(self, vms):
 		self.confMgr.updateOptions([('STATE', 'vms', vms)], True)
@@ -110,6 +111,7 @@ class HypverMigrator:
 					else:
 						print('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
 						print('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+					vm_out['migrationState'] = ''
 		return vm_out
 
 
@@ -184,17 +186,20 @@ class HypverMigrator:
 		))
 
 
-	def export_one_vm(self, vm_id):
+	def export_vm(self, vm_id):
 		print('\n-----------------------\n-- RUNNING VM EXPORT --\n-----------------------')
 		self.confMgr.refresh()
 		if not self.confMgr.getboolean('STATE', 'migrate_error'):
 			# initialize the 'vms' variable from the existing config...
 			vms = json.loads(self.confMgr.get('STATE', 'vms'))
-			log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
-				# make sure the minimum fields were entered and they have not been processed already
+			self.log.info('EXPORTING %s' % (vms[vm_id]['src_name']))
+			vms[vm_id]['clean_name'] = re.sub('[^0-9a-zA-Z]+', '-', vms[vm_id]['src_name']).strip('-')
+
+			# make sure the minimum fields were entered and they have not been processed already
 
 			if (vms[vm_id]['state'] == 'running' and ok) or vms[vm_id]['state'] == 'stopped':
-				for disk in disks:
+				exported = False
+				for disk in vms[vm_id]['src_disks']:
 					if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
 						print('Copying drive %s' % (disk['DiskImage']))
 						exported = True
@@ -202,20 +207,21 @@ class HypverMigrator:
 						if ok:
 							print('Finished copy...')
 							exported = True
+							vms[vm_id]['migrationState'] = 'exported'
 						else:
 							print('Copy failed...')
 							print('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 
 			# bring the machines back up that were running now that we copied their disks
 			if vms[vm_id]['state'] == 'running':
-				status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+				status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vms[vm_id]['hyperv_vm_name'], vms[vm_id]['hyperv_server']))
 				if ok:
-					print('Re-Started VM %s' % (vm_in['hyperv_vm_name']))
+					print('Re-Started VM %s' % (vms[vm_id]['hyperv_vm_name']))
 				else:
 					print('Failed to restart the server.')
 					print('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 
-			print('Finished exporting %s' % (vm_in['hyperv_vm_name']))
+			print('Finished exporting %s' % (vms[vm_id]['hyperv_vm_name']))
 
 			if exported:
 				### Update the running-hyperv.conf file
@@ -231,126 +237,129 @@ class HypverMigrator:
 
 	def import_vm(self, vm_id):
 		print('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
-		# go through the VMs and import them into CS
-		for i, vm in enumerate(vms):
-			vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
-			if vm_id not in json.loads(self.confMgr.get('STATE', 'imported')):
-				print('\nIMPORTING %s\n%s' % (vm['hyperv_vm_name'], '----------'+'-'*len(vm['hyperv_vm_name'])))
-				imported = False
+		if vm_id not in json.loads(self.confMgr.get('STATE', 'imported')):
+			vms = json.loads(self.confMgr.get('STATE', 'vms'))
+			print('\nIMPORTING %s\n%s' % (vms[vm_id]['hyperv_vm_name'], '----------'+'-'*len(vms[vm_id]['hyperv_vm_name'])))
+			imported = False
 
-				## setup the cloudstack details we know (or are using defaults for)
-				if 'cs_zone' not in vm and self.confMgr.has_option('CLOUDSTACK', 'default_zone'):
-					vm['cs_zone'] = self.confMgr.get('CLOUDSTACK', 'default_zone')
-					zone = cs.request(dict({'command':'listZones', 'id':vm['cs_zone']}))
-					if zone and 'zone' in zone and len(zone['zone']) > 0:
-						if zone['zone'][0]['networktype'] == 'Basic':
-							vm['cs_zone_network'] = 'basic'
-						else:
-							vm['cs_zone_network'] = 'advanced'
+			## setup the cloudstack details we know (or are using defaults for)
+			if 'cs_zone' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_zone'):
+				vms[vm_id]['cs_zone'] = self.confMgr.get('CLOUDSTACK', 'default_zone')
+				zone = cs.request(dict({'command':'listZones', 'id':vms[vm_id]['cs_zone']}))
+				if zone and 'zone' in zone and len(zone['zone']) > 0:
+					if zone['zone'][0]['networktype'] == 'Basic':
+						vms[vm_id]['cs_zone_network'] = 'basic'
+					else:
+						vms[vm_id]['cs_zone_network'] = 'advanced'
 
-				if 'cs_domain' not in vm and self.confMgr.has_option('CLOUDSTACK', 'default_domain'):
-					vm['cs_domain'] = self.confMgr.get('CLOUDSTACK', 'default_domain')
+			if 'cs_domain' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_domain'):
+				vms[vm_id]['cs_domain'] = self.confMgr.get('CLOUDSTACK', 'default_domain')
 
-				if 'cs_account' not in vm and self.confMgr.has_option('CLOUDSTACK', 'default_account'):
-					vm['cs_account'] = self.confMgr.get('CLOUDSTACK', 'default_account')
+			if 'cs_account' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_account'):
+				vms[vm_id]['cs_account'] = self.confMgr.get('CLOUDSTACK', 'default_account')
 
-				if 'cs_network' not in vm and self.confMgr.has_option('CLOUDSTACK', 'default_network'):
-					vm['cs_network'] = self.confMgr.get('CLOUDSTACK', 'default_network')
+			if 'cs_network' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_network'):
+				vms[vm_id]['cs_network'] = self.confMgr.get('CLOUDSTACK', 'default_network')
 
-				if 'cs_additional_networks' not in vm and self.confMgr.has_option('CLOUDSTACK', 'additional_networks'):
-					vm['cs_additional_networks'] = self.confMgr.get('CLOUDSTACK', 'additional_networks')
+			if 'cs_additional_networks' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'additional_networks'):
+				vms[vm_id]['cs_additional_networks'] = self.confMgr.get('CLOUDSTACK', 'additional_networks')
 
-				if 'cs_service_offering' not in vm and self.confMgr.has_option('CLOUDSTACK', 'default_service_offering'):
-					vm['cs_service_offering'] = self.confMgr.get('CLOUDSTACK', 'default_service_offering')
+			if 'cs_service_offering' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_service_offering'):
+				vms[vm_id]['cs_service_offering'] = self.confMgr.get('CLOUDSTACK', 'default_service_offering')
 
 
-				# make sure we have a complete config before we start
-				if ('cs_zone' in vm and 'cs_domain' in vm and 'cs_account' in vm and 'cs_network' in vm and 'cs_service_offering' in vm):
-					# manage the disks
-					if 'disks' in vm and len(vm['disks']) > 0:
-						# register the first disk as a template since it is the root disk
-						print('Creating template for root volume \'%s\'...' % (vm['disks'][0]['name']))
-						template = cs.request(dict({
-							'command':'registerTemplate',
-							'name':vm['disks'][0]['name'].replace(' ', '-'),
-							'displaytext':vm['disks'][0]['name'],
-							'format':'VHD',
-							'hypervisor':'Hyperv',
-							'ostypeid':'138', # None
-							'url':vm['disks'][0]['url'],
-							'zoneid':vm['cs_zone'],
-							'domainid':vm['cs_domain'],
-							'account':vm['cs_account']
-						}))
-						if template:
-							print('Template \'%s\' created...' % (template['template'][0]['id']))
-							vm['cs_template_id'] = template['template'][0]['id']
-							imported = True
-						else:
-							print('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
+			# make sure we have a complete config before we start
+			if ('cs_zone' in vms[vm_id] and 'cs_domain' in vms[vm_id] and 'cs_account' in vms[vm_id] and 'cs_network' in vms[vm_id] and 'cs_service_offering' in vms[vm_id]):
+				# manage the disks
+				if 'disks' in vms[vm_id] and len(vms[vm_id]['disks']) > 0:
+					# register the first disk as a template since it is the root disk
+					print('Creating template for root volume \'%s\'...' % (vms[vm_id]['disks'][0]['name']))
+					template = cs.request(dict({
+						'command':'registerTemplate',
+						'name':vms[vm_id]['disks'][0]['name'].replace(' ', '-'),
+						'displaytext':vms[vm_id]['disks'][0]['name'],
+						'format':'VHD',
+						'hypervisor':'Hyperv',
+						'ostypeid':'138', # None
+						'url':vms[vm_id]['disks'][0]['url'],
+						'zoneid':vms[vm_id]['cs_zone'],
+						'domainid':vms[vm_id]['cs_domain'],
+						'account':vms[vm_id]['cs_account']
+					}))
+					if template:
+						print('Template \'%s\' created...' % (template['template'][0]['id']))
+						vms[vm_id]['cs_template_id'] = template['template'][0]['id']
+						imported = True
+						vms[vm_id]['migrationState'] = 'imported'
+					else:
+						print('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
 
-						# check if there are data disks
-						if len(vm['disks']) > 1:
-							# upload the remaining disks as volumes
-							for disk in vm['disks'][1:]:
-								imported = False # reset because we have more to do...
-								print('Uploading data volume \'%s\'...' % (disk['name']))
-								volume = cs.request(dict({
-									'command':'uploadVolume',
-									'name':disk['name'].replace(' ', '-'),
-									'format':'VHD',
-									'url':disk['url'],
-									'zoneid':vm['cs_zone'],
-									'domainid':vm['cs_domain'],
-									'account':vm['cs_account']
-								}))
-								if volume and 'jobresult' in volume and 'volume' in volume['jobresult']:
-									volume_id = volume['jobresult']['volume']['id']
-									print('Volume \'%s\' uploaded...' % (volume_id))
-									if 'cs_volumes' in vm:
-										vm['cs_volumes'].append(volume_id)
-									else:
-										vm['cs_volumes'] = [volume_id]
-									imported = True
+					# check if there are data disks
+					if len(vms[vm_id]['disks']) > 1:
+						# upload the remaining disks as volumes
+						for disk in vms[vm_id]['disks'][1:]:
+							imported = False # reset because we have more to do...
+							print('Uploading data volume \'%s\'...' % (disk['name']))
+							volume = cs.request(dict({
+								'command':'uploadVolume',
+								'name':disk['name'].replace(' ', '-'),
+								'format':'VHD',
+								'url':disk['url'],
+								'zoneid':vms[vm_id]['cs_zone'],
+								'domainid':vms[vm_id]['cs_domain'],
+								'account':vms[vm_id]['cs_account']
+							}))
+							if volume and 'jobresult' in volume and 'volume' in volume['jobresult']:
+								volume_id = volume['jobresult']['volume']['id']
+								print('Volume \'%s\' uploaded...' % (volume_id))
+								if 'cs_volumes' in vms[vm_id]:
+									vms[vm_id]['cs_volumes'].append(volume_id)
 								else:
-									print('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
-				else:
-					print('We are missing settings fields for %s' % (vm['hyperv_vm_name']))
+									vms[vm_id]['cs_volumes'] = [volume_id]
+								imported = True
+							else:
+								print('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
+			else:
+				print('We are missing settings fields for %s' % (vms[vm_id]['hyperv_vm_name']))
 
-				if imported:
-					### Update the running-hyperv.conf file
-					self.confMgr.refresh()
-					imported = json.loads(self.confMgr.get('STATE', 'imported'))
-					imported.append(vm['id'])
-					self.confMgr.updateOptions([('STATE', 'imported', imported)])
-					self.updateVms(vms)
-					self.confMgr.updateRunningConfig()
+			if imported:
+				### Update the running-hyperv.conf file
+				self.confMgr.refresh()
+				imported = json.loads(self.confMgr.get('STATE', 'imported'))
+				imported.append(vms[vm_id]['id'])
+				self.confMgr.updateOptions([('STATE', 'imported', imported)])
+				self.updateVms(vms)
+				self.confMgr.updateRunningConfig()
 
 	# run the actual migration
 	def launch_vm(self, vm_id):
 		print('\n\n----------------------------\n-- LAUNCHING IMPORTED VMS --\n----------------------------')
 		# go through the imported VMs and start them and attach their volumes if they have any
-		poll = 1
-		has_error = False
-		while len(json.loads(self.confMgr.get('STATE', 'started'))) != len(json.loads(self.confMgr.get('STATE', 'imported'))) and not has_error:
-			for i, vm in enumerate(vms):
-				vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
-				isAVm = 'cs_service_offering' in vm
+		self.confMgr.refresh()
+		if not self.confMgr.getboolean('STATE', 'migrate_error'):
+			vms = json.loads(self.confMgr.get('STATE', 'vms'))
+			self.log.info('LAUNCHING %s' % (vms[vm_id]['clean_name']))
+			poll = 1
+			has_error = False
+			while not has_error and vms[vm_id]['state'] != 'launched':
+				# for i, vm in enumerate(vms):
+				# vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
+				isAVm = 'cs_service_offering' in vms[vm_id]
 				print("__________%s is a vm: %s________________________" % (vm_id, isAVm))
-				if vm_id not in json.loads(self.confMgr.get('STATE', 'started')) and 'cs_service_offering' in vm:
+				if vm_id not in json.loads(self.confMgr.get('STATE', 'started')) and 'cs_service_offering' in vms[vm_id]:
 					print("__________processing vm: %s________________________" % vm_id)
 					# check if the template has finished downloading...
 					template = cs.request(dict({
 						'command':'listTemplates', 
 						'listall':'true', 
 						'templatefilter':'self', 
-						'id':vm['cs_template_id']
+						'id':vms[vm_id]['cs_template_id']
 					}))
 					if template and 'template' in template and len(template['template']) > 0:
 						if template['template'][0]['isready']: # template is ready
 							volumes_ready = True
-							if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0: # check if volumes are ready
-								for volume_id in vm['cs_volumes']:
+							if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0: # check if volumes are ready
+								for volume_id in vms[vm_id]['cs_volumes']:
 									volume = cs.request(dict({
 										'command':'listVolumes', 
 										'listall':'true', 
@@ -360,26 +369,26 @@ class HypverMigrator:
 										# check the state of the volume
 										if volume['volume'][0]['state'] != 'Uploaded' and volume['volume'][0]['state'] != 'Ready':
 											print('%s: %s is waiting for volume \'%s\', current state: %s' % 
-												(poll, vm['hyperv_vm_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
+												(poll, vms[vm_id]['hyperv_vm_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
 											volumes_ready = False
 										else:
 											volumes_ready = volumes_ready and True # propogates False if any are False
 							# everything should be ready for this VM to be started, go ahead...
 							if volumes_ready:
-								print('%s: %s is ready to launch...' % (poll, vm['hyperv_vm_name']))
-								print('Launching VM \'%s\'...' % (vm['hyperv_vm_name'].replace(' ', '-')))
+								print('%s: %s is ready to launch...' % (poll, vms[vm_id]['hyperv_vm_name']))
+								print('Launching VM \'%s\'...' % (vms[vm_id]['hyperv_vm_name'].replace(' ', '-')))
 								# create a VM instance using the template
 								cmd = dict({
 									'command':'deployVirtualMachine',
-									'displayname':vm['hyperv_vm_name'].replace(' ', '-').replace('_', '-'),
-									'templateid':vm['cs_template_id'],
-									'serviceofferingid':vm['cs_service_offering'],
-									'zoneid':vm['cs_zone'],
-									'domainid':vm['cs_domain'],
-									'account':vm['cs_account']
+									'displayname':vms[vm_id]['hyperv_vm_name'].replace(' ', '-').replace('_', '-'),
+									'templateid':vms[vm_id]['cs_template_id'],
+									'serviceofferingid':vms[vm_id]['cs_service_offering'],
+									'zoneid':vms[vm_id]['cs_zone'],
+									'domainid':vms[vm_id]['cs_domain'],
+									'account':vms[vm_id]['cs_account']
 								})
-								if vm['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
-									all_networkIds = [vm['cs_network'], vm['cs_additional_networks']]
+								if vms[vm_id]['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
+									all_networkIds = [vms[vm_id]['cs_network'], vms[vm_id]['cs_additional_networks']]
 									cmd['networkids'] = ",".join(all_networkIds)
 									print("_____networks: %s_________" % cmd['networkids'])
 								
@@ -388,18 +397,18 @@ class HypverMigrator:
 
 								if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
 									#print('VM \'%s\' started...' % (template['template'][0]['id']))
-									#vm['cs_template_id'] = template['template'][0]['id']
+									#vms[vm_id]['cs_template_id'] = template['template'][0]['id']
 									### Update the running-hyperv.conf file
 									self.confMgr.refresh()
 									started = json.loads(self.confMgr.get('STATE', 'started'))
-									started.append(vm['id'])
+									started.append(vms[vm_id]['id'])
 									self.confMgr.updateOptions([('STATE', 'started', started)])
 									self.updateVms(vms)
 									self.confMgr.updateRunningConfig()
 
 									# attach the data volumes to it if there are data volumes
-									if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0:
-										for volume_id in vm['cs_volumes']:
+									if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0:
+										for volume_id in vms[vm_id]['cs_volumes']:
 											print('Attaching vol:%s to vm:%s ...' % (volume_id, cs_vm['jobresult']['virtualmachine']['id']))
 											attach = cs.request(dict({
 											'id':volume_id,
@@ -429,25 +438,40 @@ class HypverMigrator:
 									if not has_error:
 										### Update the running-hyperv.conf file
 										self.confMgr.refresh() # make sure we have everything from this file already
-										vms[i]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
-										vms[i]['state'] = 'launched'
+										vms[vm_id]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
+										vms[vm_id]['migrationState'] = 'launched'
 										self.updateVms(vms)
 										self.confMgr.updateRunningConfig()
 
 								elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
-									print('%s failed to start!  ERROR: %s' % (vm['hyperv_vm_name'], cs_vm['jobresult']['errortext']))
+									print('%s failed to start!  ERROR: %s' % (vms[vm_id]['hyperv_vm_name'], cs_vm['jobresult']['errortext']))
 									has_error = True
 								else:
-									print('%s did not Start or Error correctly...' % (vm['hyperv_vm_name']))
+									print('%s did not Start or Error correctly...' % (vms[vm_id]['hyperv_vm_name']))
 									has_error = True
 									
+					else:
+						print('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['hyperv_vm_name'], template['template'][0]['isready']))
 
-						else:
-							print('%s: %s is waiting for template, current state: %s'% (poll, vm['hyperv_vm_name'], template['template'][0]['isready']))
-			print('... sleeping ...')
-			poll = poll + 1
-			time.sleep(10)
+				if vms[vm_id]['migrationState'] != 'launched':
+					self.log.info('... polling ...')
+					poll = poll + 1
+					time.sleep(10)
+			if not has_error: # complete the migration...
+				self.confMgr.refresh()
+				vms = json.loads(self.confMgr.get('STATE', 'vms'))
+				# save the updated state
+				vms[vm_id]['migrationState'] = 'migrated'
+				self.updateVms(vms)
+				migrate = json.loads(self.confMgr.get('STATE', 'migrate'))
+				migrate.remove(vm_id)
+				self.confMgr.updateOptions([('STATE', 'migrate', migrate)])
+				self.confMgr.updateRunningConfig()
+				self.log.info('SUCCESSFULLY MIGRATED %s to %s\n\n' % (vms[vm_id]['src_name'], vms[vm_id]['clean_name']))
+		else:
+			self.log.info('An error has occured.  Skipping the launch process...')
 
+# vms[i]['migrationState'] = 'launched'
 		### clean up the running-hyperv.conf file...
 		#os.remove('./running-hyperv.conf')
 
@@ -460,20 +484,20 @@ class HypverMigrator:
 		for vm_id in migrate[:]: # makes a copy of the list so we can delete from the original
 			if self.confMgr.getboolean('STATE', 'migrate_error'):
 				break
-			state = vms[vm_id]['state']
-			if state == '' or state == 'migrated':
+			migrationState = vms[vm_id]['migrationState']
+			if migrationState == '' or migrationState == 'migrated':
 				self.export_vm(vm_id)
 				self.import_vm(vm_id)
 				self.launch_vm(vm_id)
-			elif state == 'exported':
+			elif migrationState == 'exported':
 				self.import_vm(vm_id)
 				self.launch_vm(vm_id)
-			elif state == 'imported':
+			elif migrationState == 'imported':
 				self.launch_vm(vm_id)
-			elif state == 'launched':
+			elif migrationState == 'launched':
 				self.confMgr.refresh()
 				vms = json.loads(self.confMgr.get('STATE', 'vms'))
-				vms[vm_id]['state'] = 'migrated'
+				vms[vm_id]['migrationState'] = 'migrated'
 				migrate.remove(vm_id)
 				self.confMgr.updateOptions([('STATE', 'vms', vms), ('STATE', 'migrate', migrate)], True)
 				self.confMgr.updateRunningConfig()
