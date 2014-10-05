@@ -42,7 +42,11 @@ class HypverMigrator:
 			self.confMgr = ConfigManager(configFile, persistentStore, defaultHypervConfig)
 
 		self.confMgr.addOptionsToSection('CLOUDSTACK', lib.cloudstack.getCloudStackConfig()) #let's put all the running configs in the same persistent store
-		log = common_services.createMigrationLog(self.confMgr)		
+		log = common_services.createMigrationLog(self.confMgr)
+
+	def updateVms(self, vms):
+		self.confMgr.updateOptions([('STATE', 'vms', vms)], True)
+
 
 	def get_vm_info(self, vm_id, vm_in):
 		# make sure the minimum fields were entered and they have not been processed already
@@ -218,10 +222,9 @@ class HypverMigrator:
 				self.confMgr.refresh()
 				exported = json.loads(self.confMgr.get('STATE', 'exported'))
 				exported.append(vms[vm_id]['id'])
-				self.confMgr.set('STATE', 'exported', json.dumps(exported, indent=4))
-				self.confMgr.set('STATE', 'vms[vm_id]', json.dumps(vms[vm_id], indent=4))
-				with open('running-hyperv.conf', 'wb') as f:
-					self.confMgr.write(f) # update the file to include the changes we have made
+				self.confMgr.updateOptions([('STATE', 'exported', exported)])
+				self.updateVms(vms)
+				self.confMgr.updateRunningConfig()
 
 		print "\nCurrent VM Objects:"
 		pprint.pprint(vms[vm_id])
@@ -319,11 +322,9 @@ class HypverMigrator:
 					self.confMgr.refresh()
 					imported = json.loads(self.confMgr.get('STATE', 'imported'))
 					imported.append(vm['id'])
-					self.confMgr.set('STATE', 'imported', json.dumps(imported, indent=4))
-					self.confMgr.set('STATE', 'vms', json.dumps(vms, indent=4))
-					with open('running-hyperv.conf', 'wb') as f:
-						self.confMgr.write(f) # update the file to include the changes we have made
-
+					self.confMgr.updateOptions([('STATE', 'imported', imported)])
+					self.updateVms(vms)
+					self.confMgr.updateRunningConfig()
 
 	# run the actual migration
 	def launch_vm(self, vm_id):
@@ -392,10 +393,9 @@ class HypverMigrator:
 									self.confMgr.refresh()
 									started = json.loads(self.confMgr.get('STATE', 'started'))
 									started.append(vm['id'])
-									self.confMgr.set('STATE', 'started', json.dumps(started, indent=4))
-									self.confMgr.set('STATE', 'vms', json.dumps(vms, indent=4))
-									with open('running-hyperv.conf', 'wb') as f:
-										self.confMgr.write(f) # update the file to include the changes we have made
+									self.confMgr.updateOptions([('STATE', 'started', started)])
+									self.updateVms(vms)
+									self.confMgr.updateRunningConfig()
 
 									# attach the data volumes to it if there are data volumes
 									if 'cs_volumes' in vm and len(vm['cs_volumes']) > 0:
@@ -414,10 +414,9 @@ class HypverMigrator:
 												print('Failed to attach volume %s' % (volume_id))
 												has_error = True
 												self.confMgr.refresh()
-												self.confMgr.set('STATE', 'migrate_error', 'True')
-												self.confMgr.set('STATE', 'vms', json.dumps(vms, indent=4))
-												with open('running-hyperv.conf', 'wb') as f:
-													self.confMgr.write(f) # update the file to include the changes we have made
+												self.confMgr.updateOptions([('STATE', 'migrate_error', 'True')])
+												self.updateVms(vms)
+												self.confMgr.updateRunningConfig()
 										if not has_error:
 											print('Rebooting the VM to make the attached volumes visible...')
 											reboot = cs.request(dict({
@@ -432,10 +431,8 @@ class HypverMigrator:
 										self.confMgr.refresh() # make sure we have everything from this file already
 										vms[i]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
 										vms[i]['state'] = 'launched'
-										self.confMgr.set('STATE', 'vms', json.dumps(vms, indent=4))
-										with open('running-hyperv.conf', 'wb') as f:
-											self.confMgr.write(f) # update the file to include the changes we have made
-
+										self.updateVms(vms)
+										self.confMgr.updateRunningConfig()
 
 								elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
 									print('%s failed to start!  ERROR: %s' % (vm['hyperv_vm_name'], cs_vm['jobresult']['errortext']))

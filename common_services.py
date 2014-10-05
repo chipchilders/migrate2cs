@@ -33,11 +33,7 @@ class CommonServices:
 					obj['accounts'][display] = {'display':display, 'id':account['id'], 'account':account['name'], 'domain':account['domainid']}
 				#pprint.pprint(account)
 
-			print("..................................dumping STATE cs_objs")
-			pprint.pprint(obj)
-			print("...ui common.....%s" % self.confMgr.get('STATE', 'foo_ui'))
-
-			self.confMgr.set('STATE', 'cs_objs', json.dumps(obj, indent=4))
+			self.confMgr.updateOptions([('STATE', 'cs_objs', obj)], True)
 			self.confMgr.updateRunningConfig() # update the file to include the changes we have made
 		return obj
 
@@ -115,7 +111,7 @@ class CommonServices:
 						#print("")
 
 		### Update the running.conf file
-		self.confMgr.set('STATE', 'cs_objs', json.dumps(obj))
+		self.confMgr.updateOptions([('STATE', 'cs_objs', obj)], True)
 		self.confMgr.updateRunningConfig()
 		return obj
 
