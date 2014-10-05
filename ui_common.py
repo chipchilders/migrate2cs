@@ -34,9 +34,11 @@ def discover_account():
 # save the 'vms' object from the client to the running.conf
 @bottle.route('/vms/save', method='POST')
 def save_vms():
+	print("************************* %s *********************" % bottle.request.params.vms.__class__)
 	if bottle.request.params.vms:
 		confMgr.refresh()
-		confMgr.updateOptions([('STATE', 'vms', bottle.request.params.vms)], True)
+		vms = json.loads(bottle.request.params.vms)
+		confMgr.updateOptions([('STATE', 'vms', vms)], True)
 		confMgr.updateRunningConfig() # update the file to include the changes we have made
 		return 'ok'
 	else:
