@@ -55,7 +55,9 @@
         });
 
         // build the VM list
-        build_vm_list();
+        // vms, vm_order = 
+        get_vms();
+        // build_vm_list();
 
         // accounts
         option_html = '<option value="">Select</option>';
@@ -105,6 +107,7 @@
         for (var i=0; i<vm_order.length; i++) {
           var vm_id = vm_order[i];
           var vm_obj = vms[vm_id];
+          console.log(vm_obj)
           var vm_el = $('#vm_tpl').clone(true);
           $(vm_el).removeAttr('id'); // get rid of the 'vm_tpl' id
           $(vm_el).data('id', vm_id);
@@ -470,6 +473,18 @@
             $('.vm_list .vm:not(#vm_tpl)').each(function() {
               $(this).remove();
             });
+            build_vm_list(); // add the vms again
+          }
+        });
+      }
+
+      function get_vms() {
+        $.ajax({
+          url: "/vms",
+          success: function(data) {
+            vms_and_order = JSON.parse(data);
+            vms = vms_and_order[0]
+            vm_order = vms_and_order[1]
             build_vm_list(); // add the vms again
           }
         });
