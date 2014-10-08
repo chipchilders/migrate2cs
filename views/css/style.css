@@ -147,6 +147,10 @@ label {
 	margin-top:1em;
 }
 
+.save_configuration {
+	float: right;
+	margin-top: 30px;
+}
 .vm_list {
 	margin-top:2em;
 }

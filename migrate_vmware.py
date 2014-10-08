@@ -432,16 +432,31 @@ def launch_vm(vm_id):
 						log.info('%s: %s is ready to launch' % (poll, vms[vm_id]['clean_name']))
 						log.info('Launching VM %s (this will take a while)...' % (vms[vm_id]['clean_name']))
 						# create a VM instance using the template
-						cmd = dict({
-							'command':'deployVirtualMachine',
-							'name':vms[vm_id]['clean_name'],
-							'displayname':vms[vm_id]['clean_name'],
-							'templateid':vms[vm_id]['cs_template_id'],
-							'serviceofferingid':vms[vm_id]['cs_service_offering'],
-							'zoneid':vms[vm_id]['cs_zone'],
-							'domainid':vms[vm_id]['cs_domain'],
-							'account':vms[vm_id]['cs_account']
-						})
+						requestedIpAddress = vms[vm_id]['cs_ip_address']
+						if (requestedIpAddress):
+							cmd = dict({
+								'command':'deployVirtualMachine',
+								'name':vms[vm_id]['clean_name'],
+								'displayname':vms[vm_id]['clean_name'],
+								'templateid':vms[vm_id]['cs_template_id'],
+								'serviceofferingid':vms[vm_id]['cs_service_offering'],
+								'zoneid':vms[vm_id]['cs_zone'],
+								'domainid':vms[vm_id]['cs_domain'],
+								'ipaddress':vms[vm_id]['cs_ip_address'],
+								'account':vms[vm_id]['cs_account']
+							})
+						else:
+							cmd = dict({
+								'command':'deployVirtualMachine',
+								'name':vms[vm_id]['clean_name'],
+								'displayname':vms[vm_id]['clean_name'],
+								'templateid':vms[vm_id]['cs_template_id'],
+								'serviceofferingid':vms[vm_id]['cs_service_offering'],
+								'zoneid':vms[vm_id]['cs_zone'],
+								'domainid':vms[vm_id]['cs_domain'],
+								'account':vms[vm_id]['cs_account']
+							})
+
 						if 'cs_network' in vms[vm_id] and vms[vm_id]['cs_network'] != '': # pass in a network if it is available
 							cmd['networkids'] = vms[vm_id]['cs_network']
 						cs_vm = cs.request(cmd) # launch the VM
@@ -480,6 +495,12 @@ def launch_vm(vm_id):
 								conf.read(['./running.conf']) # make sure we have everything from this file already
 								vms[vm_id]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
 								vms[vm_id]['state'] = 'launched'
+								if (requestedIpAddress):
+									launchedIpAddress = cs_vm['jobresult']['virtualmachine']['nic'][0]['ipaddress']
+									print("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpaddress))
+									log.info("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpaddress))
+									if (launchedIpAddress != requestedIpAddress):
+										log.error("VM %s is launched with IP address: %s (not with %s)" % (vms[vm_id]['cs_vm_id'], launchedIpAddress, requestedIpAddress))
 								conf.set('STATE', 'vms', json.dumps(vms))
 								with open('running.conf', 'wb') as f:
 									conf.write(f) # update the file to include the changes we have made
