@@ -499,6 +499,7 @@ def launch_vm(vm_id):
 									launchedIpAddress = cs_vm['jobresult']['virtualmachine']['nic'][0]['ipaddress']
 									print("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpaddress))
 									log.info("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpaddress))
+									log.info("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
 									if (launchedIpAddress != requestedIpAddress):
 										log.error("VM %s is launched with IP address: %s (not with %s)" % (vms[vm_id]['cs_vm_id'], launchedIpAddress, requestedIpAddress))
 								conf.set('STATE', 'vms', json.dumps(vms))
