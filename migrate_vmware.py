@@ -497,8 +497,7 @@ def launch_vm(vm_id):
 								vms[vm_id]['state'] = 'launched'
 								if (requestedIpAddress):
 									launchedIpAddress = cs_vm['jobresult']['virtualmachine']['nic'][0]['ipaddress']
-									print("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpaddress))
-									log.info("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpaddress))
+									print("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
 									log.info("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
 									if (launchedIpAddress != requestedIpAddress):
 										log.error("VM %s is launched with IP address: %s (not with %s)" % (vms[vm_id]['cs_vm_id'], launchedIpAddress, requestedIpAddress))
@@ -522,7 +521,10 @@ def launch_vm(vm_id):
 							with open('running.conf', 'wb') as f:
 								conf.write(f) # update the file to include the changes we have made
 				else:
-					log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
+					if ('status' in template['template'][0]):
+						log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
+					else:	
+						log.info('%s: %s is waiting for template, current state not known yet.'% (poll, vms[vm_id]['clean_name']))
 			if vms[vm_id]['state'] != 'launched':
 				log.info('... polling ...')
 				poll = poll + 1
