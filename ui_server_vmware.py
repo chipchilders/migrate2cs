@@ -27,6 +27,8 @@ conf.set('WEBSERVER', 'debug', 'False')
 conf.set('WEBSERVER', 'port', '8787')
 conf.add_section('STATE') # STATE config section to maintain state of the running process
 conf.set('STATE', 'active_migration', 'False')
+conf.add_section('DEBUG')
+conf.set('DEBUG', 'ui_test', 'False')
 # read in config files if they exist
 conf.read(['./settings.conf', './running.conf'])
 
@@ -161,7 +163,13 @@ def index():
 		open(conf.get('CLOUDSTACK', 'log_file'), 'w').close() # refresh the cs_request.log on reloads
 		open(conf.get('VMWARE', 'log_file'), 'w').close() # refresh the vmware_api.log on reloads
 		variables['cs_objs'] = json.dumps(cs_discover_accounts())
-		vms, order = discover_src_vms()
+
+		if conf.getboolean('DEBUG', 'ui_test'):
+			vms = json.loads(conf.get('STATE', 'vms'))
+			order = json.loads(conf.get('STATE', 'vm_order'))
+		else:
+			vms, order = discover_src_vms()
+
 		variables['vms'] = json.dumps(vms)
 		variables['vm_order'] = json.dumps(order)
 		variables['active_migration'] = conf.get('STATE', 'active_migration').lower()
@@ -179,12 +187,11 @@ def index():
 def start_migration():
 	if bottle.request.params.migrate:
 		conf.read(['./running.conf'])
-		conf.set('STATE', 'active_migration', 'True')
 		conf.set('STATE', 'migrate', bottle.request.params.migrate)
-		conf.set('STATE', 'migration_timestamp', int(bottle.request.params.timestamp)/1000)
 		with open('running.conf', 'wb') as f:
 			conf.write(f) # update the file to include the changes we have made
-		subprocess.Popen(['python', 'migrate_vmware.py'])
+		if not conf.getboolean('DEBUG', 'ui_test'):
+			subprocess.Popen(['python', 'migrate_vmware.py'])
 		return 'ok'
 	else:
 		return bottle.abort(500, 'Could not start the migration...')
