@@ -54,6 +54,9 @@
           $('.vm_list .vm_select input').prop('checked', false);
         });
 
+        $('.dst_ip_address').on('click', function() {
+          $(this).next('.ip_address_error').hide()
+        });
         // build the VM list
         build_vm_list();
 
@@ -271,7 +274,9 @@
         if ($('#dst_account option:selected').val() != '' && $('#dst_zone option:selected').val() != '' &&
             $('#dst_compute_offering option:selected').val() != '') {
           if ($('.vm_select .checkbox:checked').length > 0) {
-          fieldErrors = [];
+            fieldErrors = [];
+            hasIpAddressError = false;
+            hasRequiredFieldsError = false;
             $('.vm_select .checkbox:checked').each(function() {
               var vm = $(this).closest('.vm');
               var vm_id = $(vm).data('id');
@@ -292,8 +297,11 @@
                 if (validIpAddress(ipAddressEntered)) {
                   vms[vm_id]['cs_ip_address'] = ipAddressEntered;
                 } else {
-                  $(vm).find('.dst_ip_address').val(ipAddressEntered + " invalid IP");
-                  fieldErrors.push("Some IP addresses are invalid for selected VMs");
+                  $(vm).find('.ip_address_error').show();
+                  if (!hasIpAddressError) {
+                    hasIpAddressError = true;
+                    fieldErrors.push("Some IP addresses are invalid for selected VMs.");
+                  }
                 }
               }
 
@@ -315,11 +323,11 @@
 
             // the vms object has been updated.  save the updated vms object to the server.
             if (fieldErrors.length>0) {
-              $('#notice').removeClass().addClass('error').html(fieldErrors);
+              $('#notice').removeClass().addClass('error').html(fieldErrors.join("  "));
               $('#notice').show();
               setTimeout(function() {
                 $('#notice').fadeOut();
-              }, 5000);
+              }, 7000);
               return;
             }
 
@@ -357,7 +365,7 @@
           $('#notice').show();
           setTimeout(function() {
             $('#notice').fadeOut();
-          }, 5000);
+          }, 7000);
         }
       }
 
@@ -389,11 +397,32 @@
       function save_config_to_vms() {
         if ($('.vm_select .checkbox:checked').length > 0) {
           fieldErrors = [];
+          hasIpAddressError = false;
+          hasRequiredFieldsError = false;
           $('.vm_select .checkbox:checked').each(function() {
             var vm = $(this).closest('.vm');
             var vm_id = $(vm).data('id');
 
-            if (allRequiredFieldsExist(vm)) {
+            if (!allRequiredFieldsExist(vm)) {
+              if (!hasRequiredFieldsError) {
+                hasRequiredFieldsError = true;
+                fieldErrors.push("Some required fields are missing for selected VMs.");
+              }
+            }
+            ipAddressEntered = $(vm).find('.dst_ip_address').val();
+            ipIsValid = true;
+            if (!strEmpty(ipAddressEntered)) {
+              if (!validIpAddress(ipAddressEntered)) {
+                ipIsValid = false;
+                $(vm).find('.ip_address_error').show();
+                if (!hasIpAddressError) {
+                  hasIpAddressError = true;
+                  fieldErrors.push("Some IP addresses are invalid for selected VMs.");
+                }
+              }
+            }
+
+            if (allRequiredFieldsExist(vm) && ipIsValid) {
               vms[vm_id]['cs_account_display'] = $(vm).find('.dst_account_id').text();
 
               vms[vm_id]['cs_zone_display'] = $(vm).find('.dst_zone').text();
@@ -402,25 +431,15 @@
               vms[vm_id]['cs_service_offering_display'] = $(vm).find('.dst_compute_offering').text();
               vms[vm_id]['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
 
-              ipAddressEntered = $(vm).find('.dst_ip_address').val();
-              if (!strEmpty(ipAddressEntered)) {
-                if (validIpAddress(ipAddressEntered)) {
-                  vms[vm_id]['cs_ip_address'] = ipAddressEntered;
-                } else {
-                  $(vm).find('.dst_ip_address').val(ipAddressEntered + " invalid IP");
-                  fieldErrors.push("Some IP addresses are invalid for selected VMs");
-                }
-              }
+              vms[vm_id]['cs_ip_address'] = ipAddressEntered;
 
               vms[vm_id]['cs_network_display'] = $(vm).find('.dst_network').text();
               vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
-            } else {
-              fieldErrors.push("Some required fields are missing for selected VMs.");
             }
           });
 
           if (fieldErrors.length>0) {
-            $('#notice').removeClass().addClass('error').html(fieldErrors);
+            $('#notice').removeClass().addClass('error').html(fieldErrors.join("  "));
             $('#notice').show();
             setTimeout(function() {
               $('#notice').fadeOut();
@@ -709,18 +728,20 @@
                     <span class="dst_zone_id hidden"></span>
                   </div>
                   <div class="detail">
-                    <span class="label">Network</span>
-                    <span class="dst_network"> - - - </span>
-                    <span class="dst_network_id hidden"></span>
-                  </div>
-                  <div class="detail">
                     <span class="label">Compute Offering</span>
                     <span class="dst_compute_offering"> - - - </span>
                     <span class="dst_compute_offering_id hidden"></span>
                   </div>
                   <div class="detail">
-                    <span class="label">IP Address</span>
-                      <input class="dst_ip_address" type="text" name="dst_ip_address">
+                    <span class="label">Network</span>
+                    <span class="dst_network"> - - - </span>
+                    <span class="dst_network_id hidden"></span>
+                  </div>
+                  <div class="detail">
+                    <span class="label ip_address">IP</span>
+                    <input class="dst_ip_address" type="text" name="dst_ip_address">
+                    <div class="ip_address_error" style="display:none;">Invalid IP format</div>
+
                   </div>
                 </div>
                 <div class="clear"></div>
