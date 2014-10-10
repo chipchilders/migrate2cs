@@ -14,6 +14,7 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 if sys.version_info < (2, 7):
 	import lib.legacy_subprocess
 	subprocess.check_output = lib.legacy_subprocess.check_output
@@ -497,8 +498,8 @@ def launch_vm(vm_id):
 								vms[vm_id]['state'] = 'launched'
 								if (requestedIpAddress):
 									launchedIpAddress = cs_vm['jobresult']['virtualmachine']['nic'][0]['ipaddress']
-									print("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
-									log.info("IP address %s:%s  ==> %s:%s.  requestedIpAddress is: %s" % (vms[vm_id], requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
+									print("IP address %s:%s  ==> %s:%s. " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
+									log.info("IP address %s:%s  ==> %s:%s.  " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
 									if (launchedIpAddress != requestedIpAddress):
 										handleError("VM %s is launched with IP address: %s (not with %s)" % (vms[vm_id]['cs_vm_id'], launchedIpAddress, requestedIpAddress))
 								conf.set('STATE', 'vms', json.dumps(vms))
@@ -599,7 +600,9 @@ def do_migration():
 def setup():
 	conf.read(['./running.conf'])
 	conf.set('STATE', 'active_migration', 'True')
-	conf.set('STATE', 'migration_timestamp', int(bottle.request.params.timestamp)/1000)
+	timeStamp = str(int(time.time()))
+	conf.set('STATE', 'migration_timestamp', timeStamp)
+ 
 
 def teardown():
 	if conf.getboolean('STATE', 'migrate_error'):
