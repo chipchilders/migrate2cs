@@ -434,7 +434,7 @@ def launch_vm(vm_id):
 						log.info('Launching VM %s (this will take a while)...' % (vms[vm_id]['clean_name']))
 						# create a VM instance using the template
 						requestedIpAddress = vms[vm_id]['cs_ip_address']
-						if (requestedIpAddress):
+						if (requestedIpAddress and len(requestedIpAddress.strip()) > 0):
 							cmd = dict({
 								'command':'deployVirtualMachine',
 								'name':vms[vm_id]['clean_name'],
@@ -591,8 +591,8 @@ def do_migration():
 				conf.set('STATE', 'migrate', json.dumps(migrate))
 				with open('running.conf', 'wb') as f:
 					conf.write(f) # update the file to include the changes we have made
-	except Exception as e::
-		handleError(e
+	except Exception as e:
+		handleError(e)
 		traceback.print_exc()
 		log.exception("Migration stopped with the following stacktrace:")
 	finally:

@@ -293,15 +293,13 @@
               vms[vm_id]['cs_service_offering'] = $('#dst_compute_offering option:selected').val();
 
               ipAddressEntered = $(vm).find('.dst_ip_address').val();
-              if (!strEmpty(ipAddressEntered)) {
-                if (validIpAddress(ipAddressEntered)) {
-                  vms[vm_id]['cs_ip_address'] = ipAddressEntered;
-                } else {
-                  $(vm).find('.ip_address_error').show();
-                  if (!hasIpAddressError) {
-                    hasIpAddressError = true;
-                    fieldErrors.push("Some IP addresses are invalid for selected VMs.");
-                  }
+              if (validIpAddress(ipAddressEntered)) {
+                vms[vm_id]['cs_ip_address'] = ipAddressEntered;
+              } else {
+                $(vm).find('.ip_address_error').show();
+                if (!hasIpAddressError) {
+                  hasIpAddressError = true;
+                  fieldErrors.push("Some IP addresses are invalid for selected VMs.");
                 }
               }
 
@@ -372,7 +370,7 @@
 
 
       function validIpAddress(ipString) {
-        if (strEmpty(ipString)) return false
+        if (strEmpty(ipString)) return true
         myregexp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
         if (myregexp.test(ipString)) return true;
         return false;
@@ -411,17 +409,15 @@
             }
             ipAddressEntered = $(vm).find('.dst_ip_address').val();
             ipIsValid = true;
-            if (!strEmpty(ipAddressEntered)) {
-              if (!validIpAddress(ipAddressEntered)) {
-                ipIsValid = false;
-                $(vm).find('.ip_address_error').show();
-                if (!hasIpAddressError) {
-                  hasIpAddressError = true;
-                  fieldErrors.push("Some IP addresses are invalid for selected VMs.");
-                }
+            if (!validIpAddress(ipAddressEntered)) {
+              ipIsValid = false;
+              $(vm).find('.ip_address_error').show();
+              if (!hasIpAddressError) {
+                hasIpAddressError = true;
+                fieldErrors.push("Some IP addresses are invalid for selected VMs.");
               }
             }
-
+            
             if (allRequiredFieldsExist(vm) && ipIsValid) {
               vms[vm_id]['cs_account_display'] = $(vm).find('.dst_account_id').text();
 
