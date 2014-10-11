@@ -591,9 +591,10 @@ def do_migration():
 				conf.set('STATE', 'migrate', json.dumps(migrate))
 				with open('running.conf', 'wb') as f:
 					conf.write(f) # update the file to include the changes we have made
-	except:
+	except Exception as e::
+		handleError(e
 		traceback.print_exc()
-		handleError(traceback.print_exc())
+		log.exception("Migration stopped with the following stacktrace:")
 	finally:
 		teardown()
 
