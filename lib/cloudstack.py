@@ -33,6 +33,8 @@ if not conf.has_option('CLOUDSTACK', 'api_key'):
 if not conf.has_option('CLOUDSTACK', 'secret_key'):
 	sys.exit("Config required in settings-cloudstack.conf: [CLOUDSTACK] -> secret_key")
 
+def getCloudStackConfig():
+	return conf.items('CLOUDSTACK')
 
 class CloudStack(object):
 	"""
@@ -126,7 +128,7 @@ cs = CloudStack(
 	async_poll_interval=conf.getint('CLOUDSTACK', 'async_poll_interval'))
 
 ### Update the running-cloudstack.conf file
-conf.read("./running-cloudstack.conf") # make sure we have everything from this file already
-with open('running-cloudstack.conf', 'wb') as f:
-	conf.write(f) # update the file to include any changes we have made
+# conf.read("./running-cloudstack.conf") # make sure we have everything from this file already
+# with open('running-cloudstack.conf', 'wb') as f:
+# 	conf.write(f) # update the file to include any changes we have made
 
