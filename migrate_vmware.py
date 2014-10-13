@@ -14,6 +14,7 @@ import re
 import subprocess
 import sys
 import time
+import traceback
 if sys.version_info < (2, 7):
 	import lib.legacy_subprocess
 	subprocess.check_output = lib.legacy_subprocess.check_output
@@ -89,7 +90,7 @@ def export_vm(vm_id):
 				output = subprocess.check_output(cmd, shell=True)
 				log.info('OVFtool output:\n%s' % (output))
 			except subprocess.CalledProcessError, e:
-				log.error('Could not export %s \n%s' % (vms[vm_id]['src_name'], e.output))
+				handleError('Could not export %s \n%s' % (vms[vm_id]['src_name'], e.output))
 				conf.read(['./running.conf'])
 				conf.set('STATE', 'migrate_error', 'True')
 				conf.set('STATE', 'vms', json.dumps(vms))
@@ -113,7 +114,7 @@ def export_vm(vm_id):
 				log.info('Finished exporting %s' % (vms[vm_id]['src_name']))
 				vms[vm_id]['state'] = 'exported'
 			else:
-				log.error('There were problems exporting the disks for %s' % (vms[vm_id]['src_name']))
+				handleError('There were problems exporting the disks for %s' % (vms[vm_id]['src_name']))
 			conf.set('STATE', 'vms', json.dumps(vms))
 			with open('running.conf', 'wb') as f:
 				conf.write(f) # update the file to include the changes we have made
@@ -264,13 +265,13 @@ def split_ova(vm_id):
 						with open('running.conf', 'wb') as f:
 							conf.write(f) # update the file to include the changes we have made
 					else:
-						log.error('Could not save the ova to the vms disk due to index out of bound')
+						handleError('Could not save the ova to the vms disk due to index out of bound')
 						split_ok = False
 				else:
-					log.error('Failed to create %s.ova' % (split_base))
+					handleError('Failed to create %s.ova' % (split_base))
 					split_ok = False
 		else:
-			log.error('Failed to locate the source ovf file %s/%s/%s.ovf' % (
+			handleError('Failed to locate the source ovf file %s/%s/%s.ovf' % (
 				conf.get('FILESERVER', 'files_path'), src_ova_base, src_ova_base))
 			split_ok = False
 		# remove the directory we used to create the new OVA files
@@ -282,7 +283,7 @@ def split_ova(vm_id):
 			log.warning('Failed to remove temporary disk files.  Consider cleaning up the directory "%s" after the migration.' % (
 				conf.get('FILESERVER', 'files_path')))
 	else:
-		log.error('Failed to extract the ova file %s/%s' % (conf.get('FILESERVER', 'files_path'), src_ova_file))
+		handleError('Failed to extract the ova file %s/%s' % (conf.get('FILESERVER', 'files_path'), src_ova_file))
 		split_ok = False
 	return split_ok
 
@@ -333,7 +334,7 @@ def import_vm(vm_id):
 					vms[vm_id]['cs_template_id'] = template['template'][0]['id']
 					imported = True
 				else:
-					log.error('Failed to create template.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
+					handleError('Failed to create template.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
 					conf.read(['./running.conf'])
 					conf.set('STATE', 'migrate_error', 'True')
 					conf.set('STATE', 'vms', json.dumps(vms))
@@ -366,14 +367,14 @@ def import_vm(vm_id):
 								vms[vm_id]['cs_volumes'] = [volume_id]
 							imported = True
 						else:
-							log.error('Failed to upload the volume.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
+							handleError('Failed to upload the volume.  Check the "%s" log for details.' % (conf.get('CLOUDSTACK', 'log_file')))
 							conf.read(['./running.conf'])
 							conf.set('STATE', 'migrate_error', 'True')
 							conf.set('STATE', 'vms', json.dumps(vms))
 							with open('running.conf', 'wb') as f:
 								conf.write(f) # update the file to include the changes we have made
 		else:
-			log.error('We are missing CCP data for %s' % (vms[vm_id]['src_name']))
+			handleError('We are missing CCP data for %s' % (vms[vm_id]['src_name']))
 			conf.read(['./running.conf'])
 			conf.set('STATE', 'migrate_error', 'True')
 			conf.set('STATE', 'vms', json.dumps(vms))
@@ -432,16 +433,31 @@ def launch_vm(vm_id):
 						log.info('%s: %s is ready to launch' % (poll, vms[vm_id]['clean_name']))
 						log.info('Launching VM %s (this will take a while)...' % (vms[vm_id]['clean_name']))
 						# create a VM instance using the template
-						cmd = dict({
-							'command':'deployVirtualMachine',
-							'name':vms[vm_id]['clean_name'],
-							'displayname':vms[vm_id]['clean_name'],
-							'templateid':vms[vm_id]['cs_template_id'],
-							'serviceofferingid':vms[vm_id]['cs_service_offering'],
-							'zoneid':vms[vm_id]['cs_zone'],
-							'domainid':vms[vm_id]['cs_domain'],
-							'account':vms[vm_id]['cs_account']
-						})
+						requestedIpAddress = vms[vm_id]['cs_ip_address']
+						if (requestedIpAddress and len(requestedIpAddress.strip()) > 0):
+							cmd = dict({
+								'command':'deployVirtualMachine',
+								'name':vms[vm_id]['clean_name'],
+								'displayname':vms[vm_id]['clean_name'],
+								'templateid':vms[vm_id]['cs_template_id'],
+								'serviceofferingid':vms[vm_id]['cs_service_offering'],
+								'zoneid':vms[vm_id]['cs_zone'],
+								'domainid':vms[vm_id]['cs_domain'],
+								'ipaddress':vms[vm_id]['cs_ip_address'],
+								'account':vms[vm_id]['cs_account']
+							})
+						else:
+							cmd = dict({
+								'command':'deployVirtualMachine',
+								'name':vms[vm_id]['clean_name'],
+								'displayname':vms[vm_id]['clean_name'],
+								'templateid':vms[vm_id]['cs_template_id'],
+								'serviceofferingid':vms[vm_id]['cs_service_offering'],
+								'zoneid':vms[vm_id]['cs_zone'],
+								'domainid':vms[vm_id]['cs_domain'],
+								'account':vms[vm_id]['cs_account']
+							})
+
 						if 'cs_network' in vms[vm_id] and vms[vm_id]['cs_network'] != '': # pass in a network if it is available
 							cmd['networkids'] = vms[vm_id]['cs_network']
 						cs_vm = cs.request(cmd) # launch the VM
@@ -459,7 +475,7 @@ def launch_vm(vm_id):
 									if attach and 'jobstatus' in attach and attach['jobstatus']:
 										log.info('Successfully attached volume %s' % (volume_id))
 									else:
-										log.error('Failed to attach volume %s' % (volume_id))
+										handleError('Failed to attach volume %s' % (volume_id))
 										has_error = True
 										conf.read(['./running.conf'])
 										conf.set('STATE', 'migrate_error', 'True')
@@ -474,17 +490,23 @@ def launch_vm(vm_id):
 									if reboot and 'jobstatus' in reboot and reboot['jobstatus']:
 										log.info('VM rebooted')
 									else:
-										log.error('VM did not reboot.  Check the VM to make sure it came up correctly.')
+										handleError('VM did not reboot.  Check the VM to make sure it came up correctly.')
 							if not has_error:
 								### Update the running.conf file
 								conf.read(['./running.conf']) # make sure we have everything from this file already
 								vms[vm_id]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
 								vms[vm_id]['state'] = 'launched'
+								if (requestedIpAddress):
+									launchedIpAddress = cs_vm['jobresult']['virtualmachine']['nic'][0]['ipaddress']
+									print("IP address %s:%s  ==> %s:%s. " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
+									log.info("IP address %s:%s  ==> %s:%s.  " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
+									if (launchedIpAddress != requestedIpAddress):
+										handleError("VM %s is launched with IP address: %s (not with %s)" % (vms[vm_id]['cs_vm_id'], launchedIpAddress, requestedIpAddress))
 								conf.set('STATE', 'vms', json.dumps(vms))
 								with open('running.conf', 'wb') as f:
 									conf.write(f) # update the file to include the changes we have made
 						elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
-							log.error('%s failed to start!  ERROR: %s' % (vms[vm_id]['clean_name'], cs_vm['jobresult']['errortext']))
+							handleError('%s failed to start!  ERROR: %s' % (vms[vm_id]['clean_name'], cs_vm['jobresult']['errortext']))
 							has_error = True
 							conf.read(['./running.conf'])
 							conf.set('STATE', 'migrate_error', 'True')
@@ -492,7 +514,7 @@ def launch_vm(vm_id):
 							with open('running.conf', 'wb') as f:
 								conf.write(f) # update the file to include the changes we have made
 						else:
-							log.error('%s failed to start!  Check the "cs_request.log" for details...' % (vms[vm_id]['clean_name']))
+							handleError('%s failed to start!  Check the "cs_request.log" for details...' % (vms[vm_id]['clean_name']))
 							has_error = True
 							conf.read(['./running.conf'])
 							conf.set('STATE', 'migrate_error', 'True')
@@ -500,7 +522,11 @@ def launch_vm(vm_id):
 							with open('running.conf', 'wb') as f:
 								conf.write(f) # update the file to include the changes we have made
 				else:
-					log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
+					if ('status' in template['template'][0]):
+						log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
+					else:
+						handleError(template['template'][0])
+						log.info('%s: %s is waiting for template, current state not known yet.'% (poll, vms[vm_id]['clean_name']))
 			if vms[vm_id]['state'] != 'launched':
 				log.info('... polling ...')
 				poll = poll + 1
@@ -530,38 +556,56 @@ def launch_vm(vm_id):
 	else:
 		log.info('An error has occured.  Skipping the launch process...')
 
+def handleError(errorMessage):
+	print(errorMessage)
+	log.error(errorMessage)
+	conf.set('STATE', 'migrate_error', 'True')
+	with open('running.conf', 'wb') as f:
+		conf.write(f) # update the file to include the changes we have made
+
 # run the actual migration
 def do_migration():
-	conf.read(['./running.conf'])
-	vms = json.loads(conf.get('STATE', 'vms'))
-	migrate = json.loads(conf.get('STATE', 'migrate'))
-	for vm_id in migrate[:]: # makes a copy of the list so we can delete from the original
-		if conf.getboolean('STATE', 'migrate_error'):
-			break
-		state = vms[vm_id]['state']
-		if state == '' or state == 'migrated':
-			export_vm(vm_id)
-			import_vm(vm_id)
-			launch_vm(vm_id)
-		elif state == 'exported':
-			import_vm(vm_id)
-			launch_vm(vm_id)
-		elif state == 'imported':
-			launch_vm(vm_id)
-		elif state == 'launched':
-			conf.read(['./running.conf'])
-			vms = json.loads(conf.get('STATE', 'vms'))
-			vms[vm_id]['state'] = 'migrated'
-			conf.set('STATE', 'vms', json.dumps(vms))
-			migrate.remove(vm_id)
-			conf.set('STATE', 'migrate', json.dumps(migrate))
-			with open('running.conf', 'wb') as f:
-				conf.write(f) # update the file to include the changes we have made
+	try:
+		setup()
+		vms = json.loads(conf.get('STATE', 'vms'))
+		migrate = json.loads(conf.get('STATE', 'migrate'))
+		for vm_id in migrate[:]: # makes a copy of the list so we can delete from the original
+			if conf.getboolean('STATE', 'migrate_error'):
+				break
+			state = vms[vm_id]['state']
+			if state == '' or state == 'migrated':
+				export_vm(vm_id)
+				import_vm(vm_id)
+				launch_vm(vm_id)
+			elif state == 'exported':
+				import_vm(vm_id)
+				launch_vm(vm_id)
+			elif state == 'imported':
+				launch_vm(vm_id)
+			elif state == 'launched':
+				conf.read(['./running.conf'])
+				vms = json.loads(conf.get('STATE', 'vms'))
+				vms[vm_id]['state'] = 'migrated'
+				conf.set('STATE', 'vms', json.dumps(vms))
+				migrate.remove(vm_id)
+				conf.set('STATE', 'migrate', json.dumps(migrate))
+				with open('running.conf', 'wb') as f:
+					conf.write(f) # update the file to include the changes we have made
+	except Exception as e:
+		handleError(e)
+		traceback.print_exc()
+		log.exception("Migration stopped with the following stacktrace:")
+	finally:
+		teardown()
 
-
-if __name__ == "__main__":
-	do_migration()
+def setup():
 	conf.read(['./running.conf'])
+	conf.set('STATE', 'active_migration', 'True')
+	timeStamp = str(int(time.time()))
+	conf.set('STATE', 'migration_timestamp', timeStamp)
+ 
+
+def teardown():
 	if conf.getboolean('STATE', 'migrate_error'):
 		log.info('Finished with ERRORS!!!\n')
 	else:
@@ -571,4 +615,8 @@ if __name__ == "__main__":
 	conf.set('STATE', 'migrate_error', 'False')
 	with open('running.conf', 'wb') as f:
 		conf.write(f) # update the file to include the changes we have made
+
+if __name__ == "__main__":
+	do_migration()
+	conf.read(['./running.conf'])
 

@@ -54,6 +54,9 @@
           $('.vm_list .vm_select input').prop('checked', false);
         });
 
+        $('.dst_ip_address').on('click', function() {
+          $(this).next('.ip_address_error').hide()
+        });
         // build the VM list
         // vms, vm_order = 
         get_vms();
@@ -75,6 +78,9 @@
 
         // handle when a config is applied to a selection of VMs
         $('.action_apply').on('click', apply_config_to_vms);
+
+        // handle when a ip is applied to a selection of VMs
+        $('.save_configuration').on('click', save_config_to_vms);
 
         // check that the selected VMs are ready and move on to the migration
         $('.migrate').on('click', migrate_selected_vms);
@@ -153,6 +159,9 @@
           if ('cs_network' in vm_obj) {
             $(vm_el).find('.dst_network').text(vm_obj['cs_network_display']);
             $(vm_el).find('.dst_network_id').text(vm_obj['cs_network']);
+          }
+          if ('cs_ip_address' in vm_obj) {
+            $(vm_el).find('.dst_ip_address').val(vm_obj['cs_ip_address']) //.attr('disabled', 'disabled');
           }
 
           // append the vm element
@@ -268,6 +277,9 @@
         if ($('#dst_account option:selected').val() != '' && $('#dst_zone option:selected').val() != '' &&
             $('#dst_compute_offering option:selected').val() != '') {
           if ($('.vm_select .checkbox:checked').length > 0) {
+            fieldErrors = [];
+            hasIpAddressError = false;
+            hasRequiredFieldsError = false;
             $('.vm_select .checkbox:checked').each(function() {
               var vm = $(this).closest('.vm');
               var vm_id = $(vm).data('id');
@@ -282,6 +294,18 @@
               $(vm).find('.dst_compute_offering_id').text($('#dst_compute_offering option:selected').val());
               vms[vm_id]['cs_service_offering_display'] = $('#dst_compute_offering option:selected').text();
               vms[vm_id]['cs_service_offering'] = $('#dst_compute_offering option:selected').val();
+
+              ipAddressEntered = $(vm).find('.dst_ip_address').val();
+              if (validIpAddress(ipAddressEntered)) {
+                vms[vm_id]['cs_ip_address'] = ipAddressEntered;
+              } else {
+                $(vm).find('.ip_address_error').show();
+                if (!hasIpAddressError) {
+                  hasIpAddressError = true;
+                  fieldErrors.push("Some IP addresses are invalid for selected VMs.");
+                }
+              }
+
               if (!$('#dst_network').is(':disabled') && $('#dst_network option:selected').val() != '') {
                 $(vm).find('.dst_network').text($('#dst_network option:selected').text());
                 $(vm).find('.dst_network_id').text($('#dst_network option:selected').val());
@@ -297,7 +321,17 @@
                 }
               }
             });
+
             // the vms object has been updated.  save the updated vms object to the server.
+            if (fieldErrors.length>0) {
+              $('#notice').removeClass().addClass('error').html(fieldErrors.join("  "));
+              $('#notice').show();
+              setTimeout(function() {
+                $('#notice').fadeOut();
+              }, 7000);
+              return;
+            }
+
             $.ajax({
               url: "/vms/save",
               type: "POST",
@@ -332,6 +366,114 @@
           $('#notice').show();
           setTimeout(function() {
             $('#notice').fadeOut();
+          }, 7000);
+        }
+      }
+
+
+
+      function validIpAddress(ipString) {
+        if (strEmpty(ipString)) return true
+        myregexp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+        if (myregexp.test(ipString)) return true;
+        return false;
+      }
+
+      function strEmpty(str) {
+        if (str.trim()) return false;
+        return true;
+      }
+      function fieldEmpty(vm, fieldName) {
+        if (strEmpty($(vm).find(fieldName).text())) return true;
+        return false;
+      }
+      function allRequiredFieldsExist(vm) {
+        if (fieldEmpty(vm, '.dst_account_id')) return false;
+        if (fieldEmpty(vm, '.dst_zone_id')) return false;
+        if (fieldEmpty(vm, '.dst_compute_offering_id')) return false;
+        if (fieldEmpty(vm, '.dst_network_id')) return false;
+        return true;
+      }
+      // clicking the apply button to apply a config to the selected VMs
+      function save_config_to_vms() {
+        if ($('.vm_select .checkbox:checked').length > 0) {
+          fieldErrors = [];
+          hasIpAddressError = false;
+          hasRequiredFieldsError = false;
+          $('.vm_select .checkbox:checked').each(function() {
+            var vm = $(this).closest('.vm');
+            var vm_id = $(vm).data('id');
+
+            if (!allRequiredFieldsExist(vm)) {
+              if (!hasRequiredFieldsError) {
+                hasRequiredFieldsError = true;
+                fieldErrors.push("Some required fields are missing for selected VMs.");
+              }
+            }
+            ipAddressEntered = $(vm).find('.dst_ip_address').val();
+            ipIsValid = true;
+            if (!validIpAddress(ipAddressEntered)) {
+              ipIsValid = false;
+              $(vm).find('.ip_address_error').show();
+              if (!hasIpAddressError) {
+                hasIpAddressError = true;
+                fieldErrors.push("Some IP addresses are invalid for selected VMs.");
+              }
+            }
+            
+            if (allRequiredFieldsExist(vm) && ipIsValid) {
+              vms[vm_id]['cs_account_display'] = $(vm).find('.dst_account_id').text();
+
+              vms[vm_id]['cs_zone_display'] = $(vm).find('.dst_zone').text();
+              vms[vm_id]['cs_zone'] = $(vm).find('.dst_zone_id').text();
+
+              vms[vm_id]['cs_service_offering_display'] = $(vm).find('.dst_compute_offering').text();
+              vms[vm_id]['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
+
+              vms[vm_id]['cs_ip_address'] = ipAddressEntered;
+
+              vms[vm_id]['cs_network_display'] = $(vm).find('.dst_network').text();
+              vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
+            }
+          });
+
+          if (fieldErrors.length>0) {
+            $('#notice').removeClass().addClass('error').html(fieldErrors.join("  "));
+            $('#notice').show();
+            setTimeout(function() {
+              $('#notice').fadeOut();
+            }, 5000);
+            return;
+          }
+
+          // the vms object has been updated.  save the updated vms object to the server.
+          $.ajax({
+            url: "/vms/save",
+            type: "POST",
+            data: {
+              "vms":JSON.stringify(vms)
+            },
+            contentType: "application/json; charset=utf-8",
+            success: function(data) {
+              $('#notice').removeClass().html('The configuration was saved to the server...');
+              $('#notice').show();
+              setTimeout(function() {
+                $('#notice').fadeOut();
+              }, 5000);
+            },
+            error: function(xhr, status, err) {
+              $('#notice').removeClass().addClass('error').html('Failed to save the configuration to the server...<br />'+status+': '+err);
+              $('#notice').show();
+              setTimeout(function() {
+                $('#notice').fadeOut();
+              }, 5000);
+            }
+          });
+        } else {
+          $('#notice').removeClass().addClass('error').html('You need to select VMs to update the configuration to...');
+          $('#notice').show();
+          setTimeout(function() {
+            $('#notice').fadeOut();
           }, 5000);
         }
       }
@@ -357,6 +499,7 @@
               vms[vm_id]['cs_zone_display'] = $(vm).find('.dst_zone').text();
               vms[vm_id]['cs_service_offering'] = $(vm).find('.dst_compute_offering_id').text();
               vms[vm_id]['cs_service_offering_display'] = $(vm).find('.dst_compute_offering').text();
+              vms[vm_id]['cs_ip_address'] = $(vm).find('.dst_ip_address').val();
               if ($(vm).find('.dst_network_id').text() != '') {
                 vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
                 vms[vm_id]['cs_network_display'] = $(vm).find('.dst_network').text();
@@ -566,6 +709,12 @@
             </div>
             <div class="clear"> </div>
           </div>
+
+
+          <div class="clear right"> </div>
+          <button class="save_configuration">Save changes for Selected VMs</button>
+          <div class="clear"> </div>
+
           <div class="vm_list">
             
             <div id="vm_tpl" class="vm">
@@ -590,14 +739,20 @@
                     <span class="dst_zone_id hidden"></span>
                   </div>
                   <div class="detail">
+                    <span class="label">Compute Offering</span>
+                    <span class="dst_compute_offering"> - - - </span>
+                    <span class="dst_compute_offering_id hidden"></span>
+                  </div>
+                  <div class="detail">
                     <span class="label">Network</span>
                     <span class="dst_network"> - - - </span>
                     <span class="dst_network_id hidden"></span>
                   </div>
                   <div class="detail">
-                    <span class="label">Compute Offering</span>
-                    <span class="dst_compute_offering"> - - - </span>
-                    <span class="dst_compute_offering_id hidden"></span>
+                    <span class="label ip_address">IP</span>
+                    <input class="dst_ip_address" type="text" name="dst_ip_address">
+                    <div class="ip_address_error" style="display:none;">Invalid IP format</div>
+
                   </div>
                 </div>
                 <div class="clear"></div>

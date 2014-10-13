@@ -146,7 +146,6 @@ label {
 .action_panel .action_apply {
 	margin-top:1em;
 }
-
 .vm_list {
 	margin-top:2em;
 }
@@ -259,5 +258,22 @@ label {
 /* jQueryUI overrides */
 .ui-accordion-content {
 	font-size:80%;
+}
+
+.vm_list .detail .ip_address {
+	width: 11em;
+	margin-right: auto;
+}
+.dst_ip_address {
+	width: 8em;
+}
+.ip_address_error {
+	display: inline-block;
+	font-size: 80%;
+	color: red
+}
+.save_configuration {
+	float: right;
+	margin-top: 3em;
 }
 
