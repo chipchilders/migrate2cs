@@ -525,8 +525,9 @@ def launch_vm(vm_id):
 					if ('status' in template['template'][0]):
 						log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
 					else:
+						has_error = True
+						handleError('%s: %s is waiting for template, current state not known.'% (poll, vms[vm_id]['clean_name']))
 						handleError(template['template'][0])
-						log.info('%s: %s is waiting for template, current state not known yet.'% (poll, vms[vm_id]['clean_name']))
 			if vms[vm_id]['state'] != 'launched':
 				log.info('... polling ...')
 				poll = poll + 1

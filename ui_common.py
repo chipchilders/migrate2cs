@@ -34,7 +34,6 @@ def discover_account():
 # save the 'vms' object from the client to the running.conf
 @bottle.route('/vms/save', method='POST')
 def save_vms():
-	print("************************* %s *********************" % bottle.request.params.vms.__class__)
 	if bottle.request.params.vms:
 		confMgr.refresh()
 		vms = json.loads(bottle.request.params.vms)
@@ -85,12 +84,8 @@ def server_static(filepath):
 @bottle.view('index')
 def index():
 	variables = {}
-	print confMgr.__class__
-	print(confMgr.get('STATE', 'migration_timestamp'))
-	print("....4....%s" %confMgr.getboolean('WEBSERVER', 'debug'))
-	print(".....4...%s" %confMgr.get('WEBSERVER', 'port'))
 	confMgr.refresh()
-	confMgr.showAllConfigs()
+	# confMgr.showAllConfigs()
 	if not confMgr.getboolean('STATE', 'active_migration'):
 		# openconfMgr.get('CLOUDSTACK', 'log_file'), 'w').close() # refresh the cs_request.log on reloads
 		# openconfMgr.get('HYPERVISOR', 'log_file'), 'w').close() # refresh the hyperv_api.log on reloads

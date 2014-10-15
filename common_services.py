@@ -9,6 +9,8 @@ import time
 import logging
 
 
+migrationLog = logging.getLogger('migrationLog')
+
 class CommonServices:
 
 	def __init__(self, confMgr):
@@ -126,6 +128,26 @@ class CommonServices:
 				output = '%s<a href="/log/%s">%s</a><br />' % (output, file_name, file_name)
 		return output+'</div>'
 
+	def beforeMigrationSetup(self):
+		self.confMgr.refresh()
+		self.confMgr.updateOptions([('STATE', 'active_migration', 'True'), ('STATE', 'migrate', bottle.request.params.migrate)])
+		timeStamp = str(int(time.time()))
+		# self.confMgr.updateOptions([('STATE', 'migration_timestamp', timeStamp)])
+	 
+	def afterMigrationTeardown(self):
+		if self.confMgr.getboolean('STATE', 'migrate_error'):
+			migrationLog.info('Finished with ERRORS!!!\n')
+		else:
+			migrationLog.info('ALL FINISHED!!!\n')
+		migrationLog.info('~~~ ~~~ ~~~ ~~~')
+		self.confMgr.updateOptions([('STATE', 'active_migration', 'False'), ('STATE', 'migrate_error', 'False')])
+		self.confMgr.updateRunningConfig()
+
+	def handleError(self, errorMessage):
+		print(errorMessage)
+		log.error(errorMessage)
+		self.confMgr.updateOptions([('STATE', 'migrate_error', 'True')])
+		self.confMgr.updateRunningConfig()
 
 def createMigrationLog(confMgr):
 	timeStamp = str(int(time.time()))
@@ -137,12 +159,13 @@ def createMigrationLog(confMgr):
 	confMgr.updateOptions([
 		('HYPERVISOR', 'migration_log_file', logFilename),
 		('STATE', 'migrate_error', 'False')])
+	confMgr.updateRunningConfig()
 	logMgr = LogManager(logFilename)
 	return logMgr.getLogger()
 
 class LogManager:# add migration logging
 	def __init__(self, logFilename):
-		self.log = logging.getLogger()
+		self.log = logging.getLogger('migrationLog')
 		log_handler = logging.FileHandler(logFilename)
 		log_format = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
 		log_handler.setFormatter(log_format)

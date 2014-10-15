@@ -13,8 +13,6 @@
 
 import hashlib
 import json
-import logging
-import logging.handlers
 import pprint
 from lib.hyperv import HyperV # the class
 from lib.hyperv import hyperv # the connection
@@ -22,7 +20,6 @@ import ntpath
 import os
 import subprocess
 import sys
-import time
 
 from xml.etree import ElementTree as ET
 import re
@@ -30,6 +27,10 @@ from lib.config_manager import ConfigManager
 from ui_common import *
 from migrate_hyperv import HypverMigrator
 from common_services import CommonServices
+
+import logging
+import logging.handlers
+import time
 
 
 def setup():
@@ -45,10 +46,10 @@ def setup():
 	('STATE', 'exported', '[]'),
 	('STATE', 'imported', '[]'),
 	('STATE', 'foo_ui', 'bar_ui'),
-	('STATE', 'started', '[]')
+	('STATE', 'started', '[]'),
+	('DEBUG', 'ui_test', 'False')
 	]
 
-	print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 	configFile = './settings-' + HYPERVISOR_TYPE + '.conf'
 	persistentStore = './running-'+HYPERVISOR_TYPE+'.conf'
 	confMgr = ConfigManager(configFile, persistentStore, defaultHypervConfig)
@@ -60,28 +61,31 @@ def setup():
 	# make sure we have an nfs mount point
 	if not confMgr.has_option('FILESERVER', 'files_path'):
 		sys.exit("Config required in settings-hyperv.conf: [FILESERVER] -> files_path")
-	
-	# add server logging
+
+	global serverlog
+	serverlog = logging.getLogger('serverLog')
 	log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-	log = logging.getLogger()
 	if confMgr.getboolean('WEBSERVER', 'debug'):
-	    log.setLevel(logging.DEBUG)
+	    serverlog.setLevel(logging.DEBUG)
 	else:
-	    log.setLevel(logging.INFO)
+	    serverlog.setLevel(logging.INFO)
 	logging.basicConfig(format='%(asctime)s %(message)s')
 	log_file_handler = logging.handlers.TimedRotatingFileHandler('server.log', when='midnight', interval=1, backupCount=30)
 	log_file_handler.setFormatter(log_formatter)
-	log.addHandler(log_file_handler)
+	serverlog.addHandler(log_file_handler)
+	
 	return confMgr
 
 # start the migration
 @bottle.route('/migration/start', method='POST')
 def start_migration():
 	if bottle.request.params.migrate:
-		confMgr.updateOptions([('STATE', 'active_migration', 'True'), ('STATE', 'migrate', bottle.request.params.migrate)])
+		confMgr.updateOptions([('STATE', 'migrate', bottle.request.params.migrate)])
 		confMgr.updateRunningConfig()
 		confMgr.refresh()
-		subprocess.Popen(['python', 'migrate_hyperv.py'])
+		if not confMgr.getboolean('DEBUG', 'ui_test'):
+			serverlog.info("spawing the migration process...")
+			subprocess.Popen(['python', 'migrate_hyperv.py'])
 		return 'ok'
 	else:
 		return bottle.abort(500, 'Could not start the migration...')
@@ -92,7 +96,7 @@ def get_migration_log():
 	output = ''
 	confMgr.refresh()
 	try:
-		with open(confMgr.get('HYPERV', 'migration_log_file'), 'r') as f:
+		with open(confMgr.get('HYPERVISOR', 'migration_log_file'), 'r') as f:
 			output = f.read()
 	except:
 		output = 'Log does not exist yet...'
@@ -101,16 +105,18 @@ def get_migration_log():
 # pull the vms from the running config and refresh the UI
 @bottle.route('/vms')
 def fetchVms():
-	# variables = {}
-	vms, order = hyperv_migrator.discover_vms()
-	# variables['vms'] = vms
-	# variables['vm_order'] = order
+	if confMgr.getboolean('DEBUG', 'ui_test'):
+		serverlog.info("fetching vms from running.conf")
+		vms = json.loads(confMgr.get('STATE', 'vms'))
+		order = json.loads(confMgr.get('STATE', 'vm_order'))
+	else:
+		serverlog.info("fetching vms from src host")
+		vms, order = hyperv_migrator.discover_vms()
 	return json.dumps({'vms': vms, 'vm_order': order})
 
 
 confMgr = setup()
 hyperv_migrator = HypverMigrator(confMgr)
-
 
 # start the server
 bottle.run(

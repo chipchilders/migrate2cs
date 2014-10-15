@@ -4,8 +4,11 @@
 ## You may only reproduce, distribute, perform, display, or prepare derivative works of this file pursuant to a valid license from Citrix.
 
 from ConfigParser import ConfigParser
+import logging
 import json
 import pprint
+
+migrationLog = logging.getLogger('migrationLog')
 
 class ConfigManager:
 
@@ -15,7 +18,7 @@ class ConfigManager:
 			section = defaultConfig[0]
 			key = defaultConfig[1]
 			value = defaultConfig[2]
-			print("--------%s--------%s %s" % (section, key, value))
+			#migrationLog.info("--------%s--------%s %s" % (section, key, value))
 			value = defaultConfig[2]
 			if not configFile.has_section(section):
 				configFile.add_section(section)
@@ -54,10 +57,10 @@ class ConfigManager:
 			key = configOption[1]
 			value = configOption[2]
 			if isJson:
-				print("------updating json--%s--------%s %s" % (section, key, json.dumps(value, indent=4)))
+				#migrationLog.info("------updating json--%s--------%s %s" % (section, key, json.dumps(value, indent=4)))
 				self.getConfig().set(section, key, json.dumps(value, indent=4))
 			else:
-				print("------updating--%s--------%s %s" % (section, key, value))
+				#migrationLog.info("------updating--%s--------%s %s" % (section, key, value))
 				self.getConfig().set(section, key, value)				
 	
 	def addOptionsToSection(self, section, configOptions, isJson=False):
@@ -66,26 +69,19 @@ class ConfigManager:
 			for configOption in configOptions:
 				key = configOption[0]
 				value = configOption[1]
-				print("------adding--%s--------%s %s" % (section, key, value))
+				#migrationLog.info("------adding--%s--------%s %s" % (section, key, value))
 				if isJson:
 					self.getConfig().set(section, key, json.dumps(value, indent=4))
 				else:
 					self.getConfig().set(section, key, value)
 			self.updateRunningConfig()
 
-	# def getConf(self):
-	# 	return self.getConfig()
-
-	# def get(self, section, key):  # auto delegation should take care of this
-	# 	return self.getConfig().get(section, key)
 
 	def refresh(self):
 		self.getConfig().read([self.getPersistentStore()])
 
 	def showAllConfigs(self):
 		for section in self.getConfig().sections(): 
-			print("\n+++++++++++++++++++++++%s++++++++++++++++++++++++++++++++++" % (section))
+			migrationLog.info("\n+++++++++++++++++++++++%s++++++++++++++++++++++++++++++++++" % (section))
 			for item in self.getConfig().items(section):
-				print("%s\t%s" % (section, item))
-
-
+				migrationLog.info("%s\t%s" % (section, item))
