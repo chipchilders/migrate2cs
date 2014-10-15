@@ -1,7 +1,7 @@
 *.pyc
 *.log
-server.py
+server.log*
 running*.conf
-local-stuff
+_local_stuff
 *.sublime*
 
