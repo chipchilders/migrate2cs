@@ -43,11 +43,8 @@ def setup():
 	('WEBSERVER', 'debug', 'True'),
 	('WEBSERVER', 'port', '8080'),
 	('STATE', 'active_migration', 'False'),
-	('STATE', 'exported', '[]'),
-	('STATE', 'imported', '[]'),
-	('STATE', 'foo_ui', 'bar_ui'),
-	('STATE', 'started', '[]'),
-	('DEBUG', 'ui_test', 'False')
+	('DEBUG', 'ui_test', 'False'),
+	('DEBUG', 'skip_discovery', 'True')
 	]
 
 	configFile = './settings-' + HYPERVISOR_TYPE + '.conf'
@@ -105,7 +102,7 @@ def get_migration_log():
 # pull the vms from the running config and refresh the UI
 @bottle.route('/vms')
 def fetchVms():
-	if confMgr.getboolean('DEBUG', 'ui_test'):
+	if confMgr.getboolean('DEBUG', 'skip_discovery'):
 		serverlog.info("fetching vms from running.conf")
 		vms = json.loads(confMgr.get('STATE', 'vms'))
 		order = json.loads(confMgr.get('STATE', 'vm_order'))
