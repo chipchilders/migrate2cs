@@ -30,12 +30,7 @@ class HypverMigrator:
 		('HYPERVISOR', 'migration_input_file', './input/migrate_hyperv_input.json'), 
 		('HYPERVISOR', 'pscp_exe', 'C:\pscp.exe'),
 		('HYPERVISOR', 'log_file', './logs/hyperv_api.log'),
-		('STATE', 'active_migration', 'False'),
-		('STATE', 'exported', '[]'),
-		('STATE', 'imported', '[]'),
-		('STATE', 'started', '[]'),
-		('STATE', 'foo', 'bar'),
-		('STATE', 'started', '[]'),
+		('STATE', 'active_migration', 'False')
 		]
 
 		self.confMgr = confMgr
@@ -54,7 +49,7 @@ class HypverMigrator:
 
 	def get_vm_info(self, vm_id, vm_in):
 		# make sure the minimum fields were entered and they have not been processed already
-		if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in and vm_id not in json.loads(self.confMgr.get('STATE', 'exported')):
+		if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in:
 			objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 			if objs and ok: # make sure it found the specified VM
 				self.log.info('\nGETTING VM INFO %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
@@ -215,7 +210,6 @@ class HypverMigrator:
 						if ok:
 							self.log.info('Finished copy...')
 							exported = True
-							vms[vm_id]['migrationState'] = 'exported'
 						else:
 							self.handleError('Copy failed...')
 							self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
@@ -236,9 +230,7 @@ class HypverMigrator:
 				self.log.info('Finished exporting %s' % (vms[vm_id]['hyperv_vm_name']))
 				### Update the running-hyperv.conf file
 				self.confMgr.refresh()
-				exported = json.loads(self.confMgr.get('STATE', 'exported'))
-				exported.append(vms[vm_id]['id'])
-				self.confMgr.updateOptions([('STATE', 'exported', exported)])
+				vms[vm_id]['migrationState'] = 'exported'
 				self.updateVms(vms)
 				self.confMgr.updateRunningConfig()
 
@@ -247,8 +239,8 @@ class HypverMigrator:
 
 	def import_vm(self, vm_id):
 		self.log.info('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
-		if vm_id not in json.loads(self.confMgr.get('STATE', 'imported')):
-			vms = json.loads(self.confMgr.get('STATE', 'vms'))
+		vms = json.loads(self.confMgr.get('STATE', 'vms'))
+		if vms[vm_id]['migrationState'] == 'exported':
 			self.log.info('\nIMPORTING %s\n%s' % (vms[vm_id]['hyperv_vm_name'], '----------'+'-'*len(vms[vm_id]['hyperv_vm_name'])))
 			imported = False
 
@@ -300,7 +292,6 @@ class HypverMigrator:
 						self.log.info('Template \'%s\' created...' % (template['template'][0]['id']))
 						vms[vm_id]['cs_template_id'] = template['template'][0]['id']
 						imported = True
-						vms[vm_id]['migrationState'] = 'imported'
 					else:
 						self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
 
@@ -335,9 +326,7 @@ class HypverMigrator:
 			if imported:
 				### Update the running-hyperv.conf file
 				self.confMgr.refresh()
-				imported = json.loads(self.confMgr.get('STATE', 'imported'))
-				imported.append(vms[vm_id]['id'])
-				self.confMgr.updateOptions([('STATE', 'imported', imported)])
+				vms[vm_id]['migrationState'] = 'imported'
 				self.updateVms(vms)
 				self.confMgr.updateRunningConfig()
 
@@ -351,12 +340,12 @@ class HypverMigrator:
 			self.log.info('LAUNCHING %s' % (vms[vm_id]['clean_name']))
 			poll = 1
 			has_error = False
-			while not has_error and vms[vm_id]['state'] != 'launched':
+			while not has_error and vms[vm_id]['migrationState'] != 'launched':
 				# for i, vm in enumerate(vms):
 				# vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 				isAVm = 'cs_service_offering' in vms[vm_id]
 				self.log.info("__________%s is a vm: %s________________________" % (vm_id, isAVm))
-				if vm_id not in json.loads(self.confMgr.get('STATE', 'started')) and 'cs_service_offering' in vms[vm_id]:
+				if 'cs_service_offering' in vms[vm_id]:
 					self.log.info("__________processing vm: %s________________________" % vm_id)
 					# check if the template has finished downloading...
 					template = cs.request(dict({
@@ -388,34 +377,36 @@ class HypverMigrator:
 								self.log.info('%s: %s is ready to launch...' % (poll, vms[vm_id]['hyperv_vm_name']))
 								self.log.info('Launching VM \'%s\'...' % (vms[vm_id]['hyperv_vm_name'].replace(' ', '-')))
 								# create a VM instance using the template
-								cmd = dict({
-									'command':'deployVirtualMachine',
-									'displayname':vms[vm_id]['hyperv_vm_name'].replace(' ', '-').replace('_', '-'),
-									'templateid':vms[vm_id]['cs_template_id'],
-									'serviceofferingid':vms[vm_id]['cs_service_offering'],
-									'zoneid':vms[vm_id]['cs_zone'],
-									'domainid':vms[vm_id]['cs_domain'],
-									'account':vms[vm_id]['cs_account']
-								})
+								requestedIpAddress = vms[vm_id]['cs_ip_address']
+								if (requestedIpAddress and len(requestedIpAddress.strip()) > 0):
+									cmd = dict({
+										'command':'deployVirtualMachine',
+										'displayname':vms[vm_id]['hyperv_vm_name'].replace(' ', '-').replace('_', '-'),
+										'templateid':vms[vm_id]['cs_template_id'],
+										'serviceofferingid':vms[vm_id]['cs_service_offering'],
+										'zoneid':vms[vm_id]['cs_zone'],
+										'domainid':vms[vm_id]['cs_domain'],
+										'ipaddress':vms[vm_id]['cs_ip_address'],
+										'account':vms[vm_id]['cs_account']
+									})
+								else:
+									cmd = dict({
+										'command':'deployVirtualMachine',
+										'displayname':vms[vm_id]['hyperv_vm_name'].replace(' ', '-').replace('_', '-'),
+										'templateid':vms[vm_id]['cs_template_id'],
+										'serviceofferingid':vms[vm_id]['cs_service_offering'],
+										'zoneid':vms[vm_id]['cs_zone'],
+										'domainid':vms[vm_id]['cs_domain'],
+										'account':vms[vm_id]['cs_account']
+									})
+
 								if vms[vm_id]['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
 									all_networkIds = [vms[vm_id]['cs_network'], vms[vm_id]['cs_additional_networks']]
 									cmd['networkids'] = ",".join(all_networkIds)
 									self.log.info("_____networks: %s_________" % cmd['networkids'])
 								
 								cs_vm = cs.request(cmd) # launch the VM
-
-
 								if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
-									#self.log.info('VM \'%s\' started...' % (template['template'][0]['id']))
-									#vms[vm_id]['cs_template_id'] = template['template'][0]['id']
-									### Update the running-hyperv.conf file
-									self.confMgr.refresh()
-									started = json.loads(self.confMgr.get('STATE', 'started'))
-									started.append(vms[vm_id]['id'])
-									self.confMgr.updateOptions([('STATE', 'started', started)])
-									self.updateVms(vms)
-									self.confMgr.updateRunningConfig()
-
 									# attach the data volumes to it if there are data volumes
 									if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0:
 										for volume_id in vms[vm_id]['cs_volumes']:
@@ -425,7 +416,6 @@ class HypverMigrator:
 											'command':'attachVolume',
 											'virtualmachineid':cs_vm['jobresult']['virtualmachine']['id']
 											}))
-
 
 											if attach and 'jobstatus' in attach and attach['jobstatus']:
 												self.log.info('Successfully attached volume %s' % (volume_id))
@@ -450,6 +440,12 @@ class HypverMigrator:
 										self.confMgr.refresh() # make sure we have everything from this file already
 										vms[vm_id]['cs_vm_id'] = cs_vm['jobresult']['virtualmachine']['id']
 										vms[vm_id]['migrationState'] = 'launched'
+										if (requestedIpAddress):
+											launchedIpAddress = cs_vm['jobresult']['virtualmachine']['nic'][0]['ipaddress']
+											print("IP address %s:%s  ==> %s:%s. " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
+											log.info("IP address %s:%s  ==> %s:%s.  " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
+											if (launchedIpAddress != requestedIpAddress):
+												handleError("VM %s is launched with IP address: %s (not with %s)" % (vms[vm_id]['cs_vm_id'], launchedIpAddress, requestedIpAddress))
 										self.updateVms(vms)
 										self.confMgr.updateRunningConfig()
 
