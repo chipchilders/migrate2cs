@@ -85,10 +85,10 @@ class HypverMigrator:
 				# record their starting state and bring down if running
 				if int(vm_raw['EnabledState']) == HyperV.VM_RUNNING:
 					vm_out['state'] = 'running'
-					print('VM %s is Running' % (vm_in['hyperv_vm_name']))
+					self.log.info('VM %s is Running' % (vm_in['hyperv_vm_name']))
 				elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
 					vm_out['state'] = 'stopped'
-					print('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
+					self.log.info('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
 				else: # this should be improved...
 					vm_out['state'] = 'unknown'
 					handleError('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
@@ -148,20 +148,20 @@ class HypverMigrator:
 					print sys.exc_info()
 					sys.exit("Error in the formatting of '%s'" % (self.confMgr.get('HYPERVISOR', 'migration_input_file')))
 
-		print('\n-----------------------\n-- discovering vms... --\n-----------------------')
+		self.log.info('\n-----------------------\n-- discovering vms... --\n-----------------------')
 		# collect data about the VMs from HyperV and populate a list of VMs
 
 		if vm_input: # make sure there is data in the file
 			for vm_key in vm_input: # loop through the vms in the file
 				vm_in = vm_input[vm_key]
-				pprint.pprint(vm_in)
+				pprint.pself.log.info(vm_in)
 				vm_id = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
 				self.log.info("............vm_id is %s" % vm_id)
 				if vm_id not in order:
-					self.log.info("............vm_id not in order %s" % (vm_id, order))
+					self.log.info("............vm_id %s not in order %s" % (vm_id, order))
 					order.append(vm_id)
 				if vm_id not in vms:
-					self.log.info("............vm_id not in vms %s" % (vm_id, vms))
+					self.log.info("............vm_id %s not in vms %s" % (vm_id, vms))
 					vms[vm_id] = {}
 
 				vms[vm_id].update(self.get_vm_info(vm_id, vm_in))
@@ -195,7 +195,7 @@ class HypverMigrator:
 
 
 	def export_vm(self, vm_id):
-		print('\n-----------------------\n-- RUNNING VM EXPORT --\n-----------------------')
+		self.log.info('\n-----------------------\n-- RUNNING VM EXPORT --\n-----------------------')
 		self.confMgr.refresh()
 		if not self.confMgr.getboolean('STATE', 'migrate_error'):
 			# initialize the 'vms' variable from the existing config...
@@ -208,30 +208,32 @@ class HypverMigrator:
 			if (vms[vm_id]['state'] == 'running' and ok) or vms[vm_id]['state'] == 'stopped':
 				exported = False
 				for disk in vms[vm_id]['src_disks']:
-					if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
-						print('Copying drive %s' % (disk['DiskImage']))
+					if 'label' in disk and disk['label'] == 'Hard Drive' and 'path' in disk:
+						self.log.info('Copying drive %s' % (disk['path']))
 						exported = True
-						result, ok = self.copy_vhd_to_file_server(disk['DiskImage'], ntpath.split(disk['DiskImage'])[1].replace(' ', '-'))
+						result, ok = self.copy_vhd_to_file_server(disk['path'], ntpath.split(disk['path'])[1].replace(' ', '-'))
 						if ok:
-							print('Finished copy...')
+							self.log.info('Finished copy...')
 							exported = True
 							vms[vm_id]['migrationState'] = 'exported'
 						else:
 							handleError('Copy failed...')
 							handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+					else:
+						self.log.info('No label/path field or no label is not Hard Drive for disk: %s' % (disk))
+
 
 			# bring the machines back up that were running now that we copied their disks
 			if vms[vm_id]['state'] == 'running':
 				status, ok = hyperv.powershell('Start-VM -VM "%s" -Server "%s" -Wait -Force' % (vms[vm_id]['hyperv_vm_name'], vms[vm_id]['hyperv_server']))
 				if ok:
-					print('Re-Started VM %s' % (vms[vm_id]['hyperv_vm_name']))
+					self.log.info('Re-Started VM %s' % (vms[vm_id]['hyperv_vm_name']))
 				else:
 					handleError('Failed to restart the server.')
 					handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 
-			print('Finished exporting %s' % (vms[vm_id]['hyperv_vm_name']))
-
 			if exported:
+				self.log.info('Finished exporting %s' % (vms[vm_id]['hyperv_vm_name']))
 				### Update the running-hyperv.conf file
 				self.confMgr.refresh()
 				exported = json.loads(self.confMgr.get('STATE', 'exported'))
@@ -241,13 +243,13 @@ class HypverMigrator:
 				self.confMgr.updateRunningConfig()
 
 		print "\nCurrent VM Objects:"
-		pprint.pprint(vms[vm_id])
+		pprint.pself.log.info(vms[vm_id])
 
 	def import_vm(self, vm_id):
-		print('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
+		self.log.info('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
 		if vm_id not in json.loads(self.confMgr.get('STATE', 'imported')):
 			vms = json.loads(self.confMgr.get('STATE', 'vms'))
-			print('\nIMPORTING %s\n%s' % (vms[vm_id]['hyperv_vm_name'], '----------'+'-'*len(vms[vm_id]['hyperv_vm_name'])))
+			self.log.info('\nIMPORTING %s\n%s' % (vms[vm_id]['hyperv_vm_name'], '----------'+'-'*len(vms[vm_id]['hyperv_vm_name'])))
 			imported = False
 
 			## setup the cloudstack details we know (or are using defaults for)
@@ -281,7 +283,7 @@ class HypverMigrator:
 				# manage the disks
 				if 'disks' in vms[vm_id] and len(vms[vm_id]['disks']) > 0:
 					# register the first disk as a template since it is the root disk
-					print('Creating template for root volume \'%s\'...' % (vms[vm_id]['disks'][0]['name']))
+					self.log.info('Creating template for root volume \'%s\'...' % (vms[vm_id]['disks'][0]['name']))
 					template = cs.request(dict({
 						'command':'registerTemplate',
 						'name':vms[vm_id]['disks'][0]['name'].replace(' ', '-'),
@@ -295,7 +297,7 @@ class HypverMigrator:
 						'account':vms[vm_id]['cs_account']
 					}))
 					if template:
-						print('Template \'%s\' created...' % (template['template'][0]['id']))
+						self.log.info('Template \'%s\' created...' % (template['template'][0]['id']))
 						vms[vm_id]['cs_template_id'] = template['template'][0]['id']
 						imported = True
 						vms[vm_id]['migrationState'] = 'imported'
@@ -307,7 +309,7 @@ class HypverMigrator:
 						# upload the remaining disks as volumes
 						for disk in vms[vm_id]['disks'][1:]:
 							imported = False # reset because we have more to do...
-							print('Uploading data volume \'%s\'...' % (disk['name']))
+							self.log.info('Uploading data volume \'%s\'...' % (disk['name']))
 							volume = cs.request(dict({
 								'command':'uploadVolume',
 								'name':disk['name'].replace(' ', '-'),
@@ -319,7 +321,7 @@ class HypverMigrator:
 							}))
 							if volume and 'jobresult' in volume and 'volume' in volume['jobresult']:
 								volume_id = volume['jobresult']['volume']['id']
-								print('Volume \'%s\' uploaded...' % (volume_id))
+								self.log.info('Volume \'%s\' uploaded...' % (volume_id))
 								if 'cs_volumes' in vms[vm_id]:
 									vms[vm_id]['cs_volumes'].append(volume_id)
 								else:
@@ -341,7 +343,7 @@ class HypverMigrator:
 
 	# run the actual migration
 	def launch_vm(self, vm_id):
-		print('\n\n----------------------------\n-- LAUNCHING IMPORTED VMS --\n----------------------------')
+		self.log.info('\n\n----------------------------\n-- LAUNCHING IMPORTED VMS --\n----------------------------')
 		# go through the imported VMs and start them and attach their volumes if they have any
 		self.confMgr.refresh()
 		if not self.confMgr.getboolean('STATE', 'migrate_error'):
@@ -353,9 +355,9 @@ class HypverMigrator:
 				# for i, vm in enumerate(vms):
 				# vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 				isAVm = 'cs_service_offering' in vms[vm_id]
-				print("__________%s is a vm: %s________________________" % (vm_id, isAVm))
+				self.log.info("__________%s is a vm: %s________________________" % (vm_id, isAVm))
 				if vm_id not in json.loads(self.confMgr.get('STATE', 'started')) and 'cs_service_offering' in vms[vm_id]:
-					print("__________processing vm: %s________________________" % vm_id)
+					self.log.info("__________processing vm: %s________________________" % vm_id)
 					# check if the template has finished downloading...
 					template = cs.request(dict({
 						'command':'listTemplates', 
@@ -376,15 +378,15 @@ class HypverMigrator:
 									if volume and 'volume' in volume and len(volume['volume']) > 0:
 										# check the state of the volume
 										if volume['volume'][0]['state'] != 'Uploaded' and volume['volume'][0]['state'] != 'Ready':
-											print('%s: %s is waiting for volume \'%s\', current state: %s' % 
+											self.log.info('%s: %s is waiting for volume \'%s\', current state: %s' % 
 												(poll, vms[vm_id]['hyperv_vm_name'], volume['volume'][0]['name'], volume['volume'][0]['state']))
 											volumes_ready = False
 										else:
 											volumes_ready = volumes_ready and True # propogates False if any are False
 							# everything should be ready for this VM to be started, go ahead...
 							if volumes_ready:
-								print('%s: %s is ready to launch...' % (poll, vms[vm_id]['hyperv_vm_name']))
-								print('Launching VM \'%s\'...' % (vms[vm_id]['hyperv_vm_name'].replace(' ', '-')))
+								self.log.info('%s: %s is ready to launch...' % (poll, vms[vm_id]['hyperv_vm_name']))
+								self.log.info('Launching VM \'%s\'...' % (vms[vm_id]['hyperv_vm_name'].replace(' ', '-')))
 								# create a VM instance using the template
 								cmd = dict({
 									'command':'deployVirtualMachine',
@@ -398,13 +400,13 @@ class HypverMigrator:
 								if vms[vm_id]['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
 									all_networkIds = [vms[vm_id]['cs_network'], vms[vm_id]['cs_additional_networks']]
 									cmd['networkids'] = ",".join(all_networkIds)
-									print("_____networks: %s_________" % cmd['networkids'])
+									self.log.info("_____networks: %s_________" % cmd['networkids'])
 								
 								cs_vm = cs.request(cmd) # launch the VM
 
 
 								if cs_vm and 'jobresult' in cs_vm and 'virtualmachine' in cs_vm['jobresult']:
-									#print('VM \'%s\' started...' % (template['template'][0]['id']))
+									#self.log.info('VM \'%s\' started...' % (template['template'][0]['id']))
 									#vms[vm_id]['cs_template_id'] = template['template'][0]['id']
 									### Update the running-hyperv.conf file
 									self.confMgr.refresh()
@@ -417,7 +419,7 @@ class HypverMigrator:
 									# attach the data volumes to it if there are data volumes
 									if 'cs_volumes' in vms[vm_id] and len(vms[vm_id]['cs_volumes']) > 0:
 										for volume_id in vms[vm_id]['cs_volumes']:
-											print('Attaching vol:%s to vm:%s ...' % (volume_id, cs_vm['jobresult']['virtualmachine']['id']))
+											self.log.info('Attaching vol:%s to vm:%s ...' % (volume_id, cs_vm['jobresult']['virtualmachine']['id']))
 											attach = cs.request(dict({
 											'id':volume_id,
 											'command':'attachVolume',
@@ -426,7 +428,7 @@ class HypverMigrator:
 
 
 											if attach and 'jobstatus' in attach and attach['jobstatus']:
-												print('Successfully attached volume %s' % (volume_id))
+												self.log.info('Successfully attached volume %s' % (volume_id))
 											else:
 												handleError('Failed to attach volume %s' % (volume_id))
 												has_error = True
@@ -435,12 +437,12 @@ class HypverMigrator:
 												self.updateVms(vms)
 												self.confMgr.updateRunningConfig()
 										if not has_error:
-											print('Rebooting the VM to make the attached volumes visible...')
+											self.log.info('Rebooting the VM to make the attached volumes visible...')
 											reboot = cs.request(dict({
 												'command':'rebootVirtualMachine', 
 												'id':cs_vm['jobresult']['virtualmachine']['id']}))
 											if reboot and 'jobstatus' in reboot and reboot['jobstatus']:
-												print('VM rebooted')
+												self.log.info('VM rebooted')
 											else:
 												handleError('VM did not reboot.  Check the VM to make sure it came up correctly.')
 									if not has_error:
