@@ -145,7 +145,7 @@ class HypverMigrator:
 				try:
 					vm_input = json.load(f)
 				except:
-					print sys.exc_info()
+					self.log.info(sys.exc_info())
 					sys.exit("Error in the formatting of '%s'" % (self.confMgr.get('HYPERVISOR', 'migration_input_file')))
 
 		self.log.info('\n-----------------------\n-- discovering vms... --\n-----------------------')
@@ -154,7 +154,7 @@ class HypverMigrator:
 		if vm_input: # make sure there is data in the file
 			for vm_key in vm_input: # loop through the vms in the file
 				vm_in = vm_input[vm_key]
-				pprint.pself.log.info(vm_in)
+				self.log.info(vm_in)
 				vm_id = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
 				self.log.info("............vm_id is %s" % vm_id)
 				if vm_id not in order:
@@ -242,8 +242,8 @@ class HypverMigrator:
 				self.updateVms(vms)
 				self.confMgr.updateRunningConfig()
 
-		print "\nCurrent VM Objects:"
-		pprint.pself.log.info(vms[vm_id])
+		self.log.info("\nCurrent VM Objects:")
+		self.log.info(vms[vm_id])
 
 	def import_vm(self, vm_id):
 		self.log.info('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
