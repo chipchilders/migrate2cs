@@ -121,14 +121,14 @@
           $(vm_el).find('.vm_select .checkbox').attr('id', vm_id);
           $(vm_el).find('.vm_select .checkbox_label').attr('for', vm_id);
 
-          if (vm_obj['state'] != '') {
+          if (vm_obj['migrationState'] != '') {
             $(vm_el)
               .removeClass('exported')
               .removeClass('imported')
               .removeClass('launched')
               .removeClass('migrated')
-              .addClass(vm_obj['state']);
-              $(vm_el).find('.vm_state').text(vm_obj['state']);
+              .addClass(vm_obj['migrationState']);
+              $(vm_el).find('.vm_state').text(vm_obj['migrationState']);
           }
           
           // build vm details
