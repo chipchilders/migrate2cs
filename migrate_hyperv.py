@@ -104,8 +104,9 @@ class HypverMigrator:
 								vm_out['src_disks'].append({
 									'size': '0',
 									'label': disk['DriveName'],
+									'path': disk['DiskImage'], # the src path
 									'name':ntpath.split(disk['DiskImage'])[1].replace(' ', '-').split('.')[0],
-									'path':'%s://%s:%s%s%s' % (
+									'url':'%s://%s:%s%s%s' % (
 										'https' if self.confMgr.get('FILESERVER', 'port') == '443' else 'http',
 										self.confMgr.get('FILESERVER', 'host'),
 										self.confMgr.get('FILESERVER', 'port'),
@@ -210,7 +211,6 @@ class HypverMigrator:
 				for disk in vms[vm_id]['src_disks']:
 					if 'label' in disk and disk['label'] == 'Hard Drive' and 'path' in disk:
 						self.log.info('Copying drive %s' % (disk['path']))
-						exported = True
 						result, ok = self.copy_vhd_to_file_server(disk['path'], ntpath.split(disk['path'])[1].replace(' ', '-'))
 						if ok:
 							self.log.info('Finished copy...')
@@ -220,7 +220,7 @@ class HypverMigrator:
 							self.handleError('Copy failed...')
 							self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 					else:
-						self.log.info('No label/path field or no label is not Hard Drive for disk: %s' % (disk))
+						self.log.info('No label/path (DiskName/DiskImage) field or no label is not Hard Drive for disk: %s' % (disk))
 
 
 			# bring the machines back up that were running now that we copied their disks
