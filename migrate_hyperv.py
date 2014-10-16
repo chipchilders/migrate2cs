@@ -346,7 +346,7 @@ class HypverMigrator:
 			poll = 1
 			has_error = False
 			self.log.info("migrationState is: %s" % (vms[vm_id]['migrationState']))
-			while not has_error:
+			while not has_error and vms[vm_id]['state'] != 'launched':
 				# for i, vm in enumerate(vms):
 				# vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 				isAVm = 'cs_service_offering' in vms[vm_id]
@@ -450,9 +450,9 @@ class HypverMigrator:
 										if (requestedIpAddress):
 											launchedIpAddress = cs_vm['jobresult']['virtualmachine']['nic'][0]['ipaddress']
 											print("IP address %s:%s  ==> %s:%s. " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
-											log.info("IP address %s:%s  ==> %s:%s.  " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
+											self.log.info("IP address %s:%s  ==> %s:%s.  " % (vm_id, requestedIpAddress, vms[vm_id]['cs_vm_id'], launchedIpAddress))
 											if (launchedIpAddress != requestedIpAddress):
-												handleError("VM %s is launched with IP address: %s (not with %s)" % (vms[vm_id]['cs_vm_id'], launchedIpAddress, requestedIpAddress))
+												self.handleError("VM %s is launched with IP address: %s (not with %s)" % (vms[vm_id]['cs_vm_id'], launchedIpAddress, requestedIpAddress))
 										self.updateVms(vms)
 										self.confMgr.updateRunningConfig()
 
