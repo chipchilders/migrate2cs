@@ -71,16 +71,16 @@ class HypverMigrator:
 				if ok:
 					vm_out['src_cpus'] = int(cpu[0]['ProcessorsPerSocket']) * int(cpu[0]['SocketCount'])
 				else:
-					handleError('Get-VMCPUCount powershell command failed on %s' % (vm_in['hyperv_vm_name']))
-					handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+					self.handleError('Get-VMCPUCount powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+					self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 
 				# get memory
 				memory, ok = hyperv.powershell('Get-VMMemory -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 				if ok:
 					vm_out['src_memory'] = int(memory[0]['Reservation'])
 				else:
-					handleError('Get-VMMemory powershell command failed on %s' % (vm_in['hyperv_vm_name']))
-					handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+					self.handleError('Get-VMMemory powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+					self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 
 				# record their starting state and bring down if running
 				if int(vm_raw['EnabledState']) == HyperV.VM_RUNNING:
@@ -91,7 +91,7 @@ class HypverMigrator:
 					self.log.info('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
 				else: # this should be improved...
 					vm_out['state'] = 'unknown'
-					handleError('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
+					self.handleError('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
 
 				if (vm_out['state'] == 'running' and ok) or vm_out['state'] == 'stopped':
 					disks, ok = hyperv.powershell('Get-VMDisk -VM "%s"' % (vm_in['hyperv_vm_name']))
@@ -114,8 +114,8 @@ class HypverMigrator:
 										)
 									})
 					else:
-						handleError('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
-						handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+						self.handleError('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+						self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 					vm_out['migrationState'] = ''
 		return vm_out
 
@@ -217,8 +217,8 @@ class HypverMigrator:
 							exported = True
 							vms[vm_id]['migrationState'] = 'exported'
 						else:
-							handleError('Copy failed...')
-							handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+							self.handleError('Copy failed...')
+							self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 					else:
 						self.log.info('No label/path field or no label is not Hard Drive for disk: %s' % (disk))
 
@@ -229,8 +229,8 @@ class HypverMigrator:
 				if ok:
 					self.log.info('Re-Started VM %s' % (vms[vm_id]['hyperv_vm_name']))
 				else:
-					handleError('Failed to restart the server.')
-					handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+					self.handleError('Failed to restart the server.')
+					self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
 
 			if exported:
 				self.log.info('Finished exporting %s' % (vms[vm_id]['hyperv_vm_name']))
@@ -302,7 +302,7 @@ class HypverMigrator:
 						imported = True
 						vms[vm_id]['migrationState'] = 'imported'
 					else:
-						handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
+						self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
 
 					# check if there are data disks
 					if len(vms[vm_id]['disks']) > 1:
@@ -328,9 +328,9 @@ class HypverMigrator:
 									vms[vm_id]['cs_volumes'] = [volume_id]
 								imported = True
 							else:
-								handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
+								self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
 			else:
-				handleError('We are missing settings fields for %s' % (vms[vm_id]['hyperv_vm_name']))
+				self.handleError('We are missing settings fields for %s' % (vms[vm_id]['hyperv_vm_name']))
 
 			if imported:
 				### Update the running-hyperv.conf file
@@ -430,7 +430,7 @@ class HypverMigrator:
 											if attach and 'jobstatus' in attach and attach['jobstatus']:
 												self.log.info('Successfully attached volume %s' % (volume_id))
 											else:
-												handleError('Failed to attach volume %s' % (volume_id))
+												self.handleError('Failed to attach volume %s' % (volume_id))
 												has_error = True
 												self.confMgr.refresh()
 												self.confMgr.updateOptions([('STATE', 'migrate_error', 'True')])
@@ -444,7 +444,7 @@ class HypverMigrator:
 											if reboot and 'jobstatus' in reboot and reboot['jobstatus']:
 												self.log.info('VM rebooted')
 											else:
-												handleError('VM did not reboot.  Check the VM to make sure it came up correctly.')
+												self.handleError('VM did not reboot.  Check the VM to make sure it came up correctly.')
 									if not has_error:
 										### Update the running-hyperv.conf file
 										self.confMgr.refresh() # make sure we have everything from this file already
@@ -454,10 +454,10 @@ class HypverMigrator:
 										self.confMgr.updateRunningConfig()
 
 								elif cs_vm and 'jobresult' in cs_vm and 'errortext' in cs_vm['jobresult']:
-									handleError('%s failed to start!  ERROR: %s' % (vms[vm_id]['hyperv_vm_name'], cs_vm['jobresult']['errortext']))
+									self.handleError('%s failed to start!  ERROR: %s' % (vms[vm_id]['hyperv_vm_name'], cs_vm['jobresult']['errortext']))
 									has_error = True
 								else:
-									handleError('%s did not Start or Error correctly...' % (vms[vm_id]['hyperv_vm_name']))
+									self.handleError('%s did not Start or Error correctly...' % (vms[vm_id]['hyperv_vm_name']))
 									has_error = True
 									
 					else:
@@ -465,8 +465,8 @@ class HypverMigrator:
 							self.log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
 						else:
 							has_error = True
-							handleError('%s: %s is waiting for template, current state not known.'% (poll, vms[vm_id]['clean_name']))
-							handleError(template['template'][0])
+							self.handleError('%s: %s is waiting for template, current state not known.'% (poll, vms[vm_id]['clean_name']))
+							self.handleError(template['template'][0])
 
 				if vms[vm_id]['migrationState'] != 'launched':
 					self.log.info('... polling ...')
@@ -490,6 +490,8 @@ class HypverMigrator:
 		### clean up the running-hyperv.conf file...
 		#os.remove('./running-hyperv.conf')
 
+	def handleError(self, e):
+		self.commonService.handleError(e)
 
 	# run the actual migration
 	def do_migration(self):
@@ -520,7 +522,7 @@ class HypverMigrator:
 					self.confMgr.updateOptions([('STATE', 'vms', vms), ('STATE', 'migrate', migrate)], True)
 					self.confMgr.updateRunningConfig()
 		except Exception as e:
-			self.commonService.handleError(e)
+			self.handleError(e)
 			traceback.print_exc()
 			self.log.exception("Migration stopped with the following stacktrace:")
 		finally:
