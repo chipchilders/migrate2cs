@@ -240,19 +240,21 @@ class HypverMigrator:
 	def import_vm(self, vm_id):
 		self.log.info('\n\n-----------------------\n-- RUNNING VM IMPORT --\n-----------------------')
 		vms = json.loads(self.confMgr.get('STATE', 'vms'))
+		self.log.info("migrationState is: %s" % (vms[vm_id]['migrationState']))
 		if vms[vm_id]['migrationState'] == 'exported':
-			self.log.info('\nIMPORTING %s\n%s' % (vms[vm_id]['hyperv_vm_name'], '----------'+'-'*len(vms[vm_id]['hyperv_vm_name'])))
+			self.log.info('IMPORTING %s\n%s' % (vms[vm_id]['hyperv_vm_name'], '----------'+'-'*len(vms[vm_id]['hyperv_vm_name'])))
 			imported = False
 
 			## setup the cloudstack details we know (or are using defaults for)
-			if 'cs_zone' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_zone'):
-				vms[vm_id]['cs_zone'] = self.confMgr.get('CLOUDSTACK', 'default_zone')
-				zone = cs.request(dict({'command':'listZones', 'id':vms[vm_id]['cs_zone']}))
-				if zone and 'zone' in zone and len(zone['zone']) > 0:
-					if zone['zone'][0]['networktype'] == 'Basic':
-						vms[vm_id]['cs_zone_network'] = 'basic'
-					else:
-						vms[vm_id]['cs_zone_network'] = 'advanced'
+			# we always have cs_zone...  and this is not there vmware migrate, so we will retire this for now
+			# if 'cs_zone' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_zone'):
+			# 	vms[vm_id]['cs_zone'] = self.confMgr.get('CLOUDSTACK', 'default_zone')
+			# 	zone = cs.request(dict({'command':'listZones', 'id':vms[vm_id]['cs_zone']}))
+			# 	if zone and 'zone' in zone and len(zone['zone']) > 0:
+			# 		if zone['zone'][0]['networktype'] == 'Basic':
+			# 			vms[vm_id]['cs_zone_network'] = 'basic'
+			# 		else:
+			# 			vms[vm_id]['cs_zone_network'] = 'advanced'
 
 			if 'cs_domain' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_domain'):
 				vms[vm_id]['cs_domain'] = self.confMgr.get('CLOUDSTACK', 'default_domain')
@@ -273,17 +275,17 @@ class HypverMigrator:
 			# make sure we have a complete config before we start
 			if ('cs_zone' in vms[vm_id] and 'cs_domain' in vms[vm_id] and 'cs_account' in vms[vm_id] and 'cs_network' in vms[vm_id] and 'cs_service_offering' in vms[vm_id]):
 				# manage the disks
-				if 'disks' in vms[vm_id] and len(vms[vm_id]['disks']) > 0:
+				if 'src_disks' in vms[vm_id] and len(vms[vm_id]['src_disks']) > 0:
 					# register the first disk as a template since it is the root disk
-					self.log.info('Creating template for root volume \'%s\'...' % (vms[vm_id]['disks'][0]['name']))
+					self.log.info('Creating template for root volume \'%s\'...' % (vms[vm_id]['src_disks'][0]['name']))
 					template = cs.request(dict({
 						'command':'registerTemplate',
-						'name':vms[vm_id]['disks'][0]['name'].replace(' ', '-'),
-						'displaytext':vms[vm_id]['disks'][0]['name'],
+						'name':vms[vm_id]['src_disks'][0]['name'].replace(' ', '-'),
+						'displaytext':vms[vm_id]['src_disks'][0]['name'],
 						'format':'VHD',
 						'hypervisor':'Hyperv',
 						'ostypeid':'138', # None
-						'url':vms[vm_id]['disks'][0]['url'],
+						'url':vms[vm_id]['src_disks'][0]['url'],
 						'zoneid':vms[vm_id]['cs_zone'],
 						'domainid':vms[vm_id]['cs_domain'],
 						'account':vms[vm_id]['cs_account']
@@ -295,10 +297,10 @@ class HypverMigrator:
 					else:
 						self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('CLOUDSTACK', 'log_file')))
 
-					# check if there are data disks
-					if len(vms[vm_id]['disks']) > 1:
-						# upload the remaining disks as volumes
-						for disk in vms[vm_id]['disks'][1:]:
+					# check if there are data src_disks
+					if len(vms[vm_id]['src_disks']) > 1:
+						# upload the remaining src_disks as volumes
+						for disk in vms[vm_id]['src_disks'][1:]:
 							imported = False # reset because we have more to do...
 							self.log.info('Uploading data volume \'%s\'...' % (disk['name']))
 							volume = cs.request(dict({
@@ -337,10 +339,14 @@ class HypverMigrator:
 		self.confMgr.refresh()
 		if not self.confMgr.getboolean('STATE', 'migrate_error'):
 			vms = json.loads(self.confMgr.get('STATE', 'vms'))
+			if vms[vm_id]['migrationState'] != 'imported':
+				self.handleError("Error: VM %d cannot be launched as it is not yet imported. Skipping the launch process..." % vm_id)
+				return
 			self.log.info('LAUNCHING %s' % (vms[vm_id]['clean_name']))
 			poll = 1
 			has_error = False
-			while not has_error and vms[vm_id]['migrationState'] != 'launched':
+			self.log.info("migrationState is: %s" % (vms[vm_id]['migrationState']))
+			while not has_error:
 				# for i, vm in enumerate(vms):
 				# vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 				isAVm = 'cs_service_offering' in vms[vm_id]
@@ -400,7 +406,8 @@ class HypverMigrator:
 										'account':vms[vm_id]['cs_account']
 									})
 
-								if vms[vm_id]['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
+								# if vms[vm_id]['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
+								if 'cs_network' in vms[vm_id] and vms[vm_id]['cs_network'] != '':
 									all_networkIds = [vms[vm_id]['cs_network'], vms[vm_id]['cs_additional_networks']]
 									cmd['networkids'] = ",".join(all_networkIds)
 									self.log.info("_____networks: %s_________" % cmd['networkids'])
