@@ -130,7 +130,7 @@ class CommonServices:
 
 	def beforeMigrationSetup(self):
 		self.confMgr.refresh()
-		self.confMgr.updateOptions([('STATE', 'active_migration', 'True'), ('STATE', 'migrate', bottle.request.params.migrate)])
+		self.confMgr.updateOptions([('STATE', 'active_migration', 'True')])
 		timeStamp = str(int(time.time()))
 		# self.confMgr.updateOptions([('STATE', 'migration_timestamp', timeStamp)])
 	 
@@ -145,7 +145,7 @@ class CommonServices:
 
 	def handleError(self, errorMessage):
 		print(errorMessage)
-		log.error(errorMessage)
+		migrationLog.error(errorMessage)
 		self.confMgr.updateOptions([('STATE', 'migrate_error', 'True')])
 		self.confMgr.updateRunningConfig()
 

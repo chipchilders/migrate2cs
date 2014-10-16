@@ -46,7 +46,7 @@ class HypverMigrator:
 
 		self.confMgr.addOptionsToSection('CLOUDSTACK', lib.cloudstack.getCloudStackConfig()) #let's put all the running configs in the same persistent store
 		self.log = common_services.createMigrationLog(self.confMgr)
-		self.commonService = CommonServices(confMgr)
+		self.commonService = CommonServices(self.confMgr)
 
 	def updateVms(self, vms):
 		self.confMgr.updateOptions([('STATE', 'vms', vms)], True)
@@ -460,7 +460,7 @@ class HypverMigrator:
 									
 					else:
 						if ('status' in template['template'][0]):
-							log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
+							self.log.info('%s: %s is waiting for template, current state: %s'% (poll, vms[vm_id]['clean_name'], template['template'][0]['status']))
 						else:
 							has_error = True
 							handleError('%s: %s is waiting for template, current state not known.'% (poll, vms[vm_id]['clean_name']))
@@ -491,14 +491,13 @@ class HypverMigrator:
 
 	# run the actual migration
 	def do_migration(self):
-		log.info("hhhhhhh.......................")
 		try:
 			self.commonService.beforeMigrationSetup()
 			self.confMgr.refresh()
 			vms = json.loads(self.confMgr.get('STATE', 'vms'))
 			migrate = json.loads(self.confMgr.get('STATE', 'migrate'))
 			for vm_id in migrate[:]: # makes a copy of the list so we can delete from the original
-				log.info("starting migration for %s.  migrationState: " % (vm_id, vms[vm_id]['migrationState']))
+				self.log.info("starting migration for %s.  migrationState: %s " % (vm_id, vms[vm_id]['migrationState']))
 				if self.confMgr.getboolean('STATE', 'migrate_error'):
 					break
 				migrationState = vms[vm_id]['migrationState']
@@ -521,7 +520,7 @@ class HypverMigrator:
 		except Exception as e:
 			self.commonService.handleError(e)
 			traceback.print_exc()
-			log.exception("Migration stopped with the following stacktrace:")
+			self.log.exception("Migration stopped with the following stacktrace:")
 		finally:
 			self.commonService.afterMigrationTeardown()
 
