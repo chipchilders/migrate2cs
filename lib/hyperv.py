@@ -10,21 +10,21 @@ import winrm
 
 # setup the conf object and set default values...
 conf = ConfigParser()
-conf.add_section('HYPERV')
-conf.set('HYPERV', 'module_path', 'C:\Program Files\modules\HyperV')
-conf.set('HYPERV', 'logging', 'True')
-conf.set('HYPERV', 'log_file', './logs/hyperv_ps.log')
+conf.add_section('HYPERVISOR')
+conf.set('HYPERVISOR', 'module_path', 'C:\Program Files\modules\HyperV')
+conf.set('HYPERVISOR', 'logging', 'True')
+conf.set('HYPERVISOR', 'log_file', './logs/hyperv_api.log')
 
 # read in config if it exists
 conf.read("./settings-hyperv.conf")
 
 # require 'endpoint', 'username' and 'password' to use this lib
-if not conf.has_option('HYPERV', 'endpoint'):
-	sys.exit("Config required in settings-hyperv.conf: [HYPERV] -> endpoint")
-if not conf.has_option('HYPERV', 'username'):
-	sys.exit("Config required in settings-hyperv.conf: [HYPERV] -> username")
-if not conf.has_option('HYPERV', 'password'):
-	sys.exit("Config required in settings-hyperv.conf: [HYPERV] -> password")
+if not conf.has_option('HYPERVISOR', 'endpoint'):
+	sys.exit("Config required in settings-hyperv.conf: [HYPERVISOR] -> endpoint")
+if not conf.has_option('HYPERVISOR', 'username'):
+	sys.exit("Config required in settings-hyperv.conf: [HYPERVISOR] -> username")
+if not conf.has_option('HYPERVISOR', 'password'):
+	sys.exit("Config required in settings-hyperv.conf: [HYPERVISOR] -> password")
 
 class HyperV:
 	VM_RUNNING = 2
@@ -36,10 +36,10 @@ class HyperV:
 	# takes a powershell command and runs it on a hyperv server.
 	def powershell(self, command):
 		ok = False
-		cmd = 'powershell -Command "Import-Module \'%s\'; %s | Format-List"' % (conf.get('HYPERV', 'module_path'), command.replace('"', '\\\"'))
+		cmd = 'powershell -Command "Import-Module \'%s\'; %s | Format-List"' % (conf.get('HYPERVISOR', 'module_path'), command.replace('"', '\\\"'))
 		r = self.session.run_cmd(cmd)
-		if conf.getboolean('HYPERV', 'logging'):
-			with open(conf.get('HYPERV', 'log_file'), 'a') as f:
+		if conf.getboolean('HYPERVISOR', 'logging'):
+			with open(conf.get('HYPERVISOR', 'log_file'), 'a') as f:
 				f.write('request:\n')
 				f.write(cmd)
 				f.write('\n\n')
@@ -68,7 +68,7 @@ class HyperV:
 			return r.std_err, ok
 
 ### Set the hyperv object to be used elsewhere
-hyperv = HyperV(conf.get('HYPERV', 'endpoint'), conf.get('HYPERV', 'username'), conf.get('HYPERV', 'password'))
+hyperv = HyperV(conf.get('HYPERVISOR', 'endpoint'), conf.get('HYPERVISOR', 'username'), conf.get('HYPERVISOR', 'password'))
 
 ### Update the running-hyperv.conf file
 conf.read("./running-hyperv.conf") # make sure we have everything from this file already
