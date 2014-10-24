@@ -47,77 +47,138 @@ class HypverMigrator:
 		self.confMgr.updateOptions([('STATE', 'vms', vms)], True)
 
 
-	def get_vm_info(self, vm_id, vm_in):
+	def get_vm_raw_from_src(self, vm_in):
 		# make sure the minimum fields were entered and they have not been processed already
 		if 'hyperv_vm_name' in vm_in and 'hyperv_server' in vm_in:
 			objs, ok = hyperv.powershell('Get-VM -Name "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
 			if objs and ok: # make sure it found the specified VM
-				self.log.info('\nGETTING VM INFO %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
+				return objs[0]
 
-				vm_out = vm_in
-				vm_raw = objs[0]
-				vm_out['id'] = vm_id
-				
-				vm_out['src_name'] = vm_raw['ElementName']
-				vm_out['src_type'] = vm_raw['ElementName']
+	def get_vm_info(self, vm_id, vm_in, vm_raw):
+		if not vm_raw: # vm_raw will be null if we are not running discovery process, instead we are just reading the an input file for vms to be migrated.
+			vm_raw = get_vm_raw_from_src(vm_in)
 
-				# get cores, cpus
-				cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+		if vm_raw: # make sure it found the specified VM
+			self.log.info('\nGETTING VM INFO %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
+
+			vm_out = vm_in
+			vm_out['id'] = vm_id
+			
+			vm_out['src_name'] = vm_raw['ElementName']
+			vm_out['src_type'] = vm_raw['ElementName']
+
+			# get cores, cpus
+			cpu, ok = hyperv.powershell('Get-VMCPUCount -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+			if ok:
+				vm_out['src_cpus'] = int(cpu[0]['ProcessorsPerSocket']) * int(cpu[0]['SocketCount'])
+			else:
+				self.handleError('Get-VMCPUCount powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+				self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+
+			# get memory
+			memory, ok = hyperv.powershell('Get-VMMemory -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
+			if ok:
+				vm_out['src_memory'] = int(memory[0]['Reservation'])
+			else:
+				self.handleError('Get-VMMemory powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+				self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
+
+			# record their starting state and bring down if running
+			if int(vm_raw['EnabledState']) == HyperV.VM_RUNNING:
+				vm_out['state'] = 'running'
+				self.log.info('VM %s is Running' % (vm_in['hyperv_vm_name']))
+			elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
+				vm_out['state'] = 'stopped'
+				self.log.info('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
+			else: # this should be improved...
+				vm_out['state'] = 'unknown'
+				self.handleError('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
+
+			if (vm_out['state'] == 'running' and ok) or vm_out['state'] == 'stopped':
+				disks, ok = hyperv.powershell('Get-VMDisk -VM "%s"' % (vm_in['hyperv_vm_name']))
 				if ok:
-					vm_out['src_cpus'] = int(cpu[0]['ProcessorsPerSocket']) * int(cpu[0]['SocketCount'])
+					# if 'src_disks' not in vms[vm_id] or (
+					# 		'src_disks' in vms[vm_id] and len(vms[vm_id]['src_disks']) != len(disks)):
+					vm_out['src_disks'] = []
+					for disk in disks:
+						if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
+							vm_out['src_disks'].append({
+								'size': '0',
+								'label': disk['DriveName'],
+								'path': disk['DiskImage'], # the src path
+								'name':ntpath.split(disk['DiskImage'])[1].replace(' ', '-').split('.')[0],
+								'url':'%s://%s:%s%s%s' % (
+									'https' if self.confMgr.get('FILESERVER', 'port') == '443' else 'http',
+									self.confMgr.get('FILESERVER', 'host'),
+									self.confMgr.get('FILESERVER', 'port'),
+									self.confMgr.get('FILESERVER', 'base_uri'),
+									ntpath.split(disk['DiskImage'])[1].replace(' ', '-')
+									)
+								})
 				else:
-					self.handleError('Get-VMCPUCount powershell command failed on %s' % (vm_in['hyperv_vm_name']))
+					self.handleError('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
 					self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
-
-				# get memory
-				memory, ok = hyperv.powershell('Get-VMMemory -VM "%s" -Server "%s"' % (vm_in['hyperv_vm_name'], vm_in['hyperv_server']))
-				if ok:
-					vm_out['src_memory'] = int(memory[0]['Reservation'])
-				else:
-					self.handleError('Get-VMMemory powershell command failed on %s' % (vm_in['hyperv_vm_name']))
-					self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
-
-				# record their starting state and bring down if running
-				if int(vm_raw['EnabledState']) == HyperV.VM_RUNNING:
-					vm_out['state'] = 'running'
-					self.log.info('VM %s is Running' % (vm_in['hyperv_vm_name']))
-				elif int(vm_raw['EnabledState']) == HyperV.VM_STOPPED:
-					vm_out['state'] = 'stopped'
-					self.log.info('VM %s is Stopped' % (vm_in['hyperv_vm_name']))
-				else: # this should be improved...
-					vm_out['state'] = 'unknown'
-					self.handleError('VM %s is in an Unknown state' % (vm_in['hyperv_vm_name']))
-
-				if (vm_out['state'] == 'running' and ok) or vm_out['state'] == 'stopped':
-					disks, ok = hyperv.powershell('Get-VMDisk -VM "%s"' % (vm_in['hyperv_vm_name']))
-					if ok:
-						# if 'src_disks' not in vms[vm_id] or (
-						# 		'src_disks' in vms[vm_id] and len(vms[vm_id]['src_disks']) != len(disks)):
-						vm_out['src_disks'] = []
-						for disk in disks:
-							if 'DriveName' in disk and disk['DriveName'] == 'Hard Drive' and 'DiskImage' in disk:
-								vm_out['src_disks'].append({
-									'size': '0',
-									'label': disk['DriveName'],
-									'path': disk['DiskImage'], # the src path
-									'name':ntpath.split(disk['DiskImage'])[1].replace(' ', '-').split('.')[0],
-									'url':'%s://%s:%s%s%s' % (
-										'https' if self.confMgr.get('FILESERVER', 'port') == '443' else 'http',
-										self.confMgr.get('FILESERVER', 'host'),
-										self.confMgr.get('FILESERVER', 'port'),
-										self.confMgr.get('FILESERVER', 'base_uri'),
-										ntpath.split(disk['DiskImage'])[1].replace(' ', '-')
-										)
-									})
-					else:
-						self.handleError('Get-VMDisk powershell command failed on %s' % (vm_in['hyperv_vm_name']))
-						self.handleError('ERROR: Check the "%s" log for details' % (self.confMgr.get('HYPERVISOR', 'log_file')))
-					vm_out['migrationState'] = ''
+				vm_out['migrationState'] = ''
 		return vm_out
 
 
-
 	def discover_vms(self):
+		self.confMgr.refresh()
+		if self.confMgr.has_option('STATE', 'vms'):
+			# initialize the 'vms' variable from the existing config...
+			vms = json.loads(self.confMgr.get('STATE', 'vms'))
+		else:
+			vms = {}
+
+		if self.confMgr.has_option('STATE', 'vm_order'):
+			order = json.loads(self.confMgr.get('STATE', 'vm_order'))
+		else:
+			order = []
+
+		with open(self.confMgr.get('HYPERVISOR', 'log_file'), 'a') as f:
+			f.write('\n\nDISCOVERING HYPERV...\n')
+
+		discovered = [] # vms of this discovery.  we will remove the vm's from 'vms' later if they are not in this array.
+
+		vm_input = {}
+
+		self.log.info('\n-----------------------\n-- discovering vms... --\n-----------------------')
+		# collect data about the VMs from HyperV and populate a list of VMs
+		HypervHost = 'HYPERV1'
+		objs, ok = hyperv.powershell('Get-VM -Server "%s" ' % (HypervHost))
+		if objs and ok: 
+			# self.log.info('\nGETTING VM INFO %s\n%s' % (vm_in['hyperv_vm_name'], '----------'+'-'*len(vm_in['hyperv_vm_name'])))
+			for hypervObj in objs: # loop through the vms in the file
+				vm_in = {}
+				self.log.info(hypervObj)
+				vm_in['hyperv_server'] = HypervHost
+				vm_in['hyperv_vm_name'] = hypervObj['ElementName']
+				vm_id = hashlib.sha1(vm_in['hyperv_server']+"|"+vm_in['hyperv_vm_name']).hexdigest()
+				self.log.info("............vm_id is %s" % vm_id)
+				if vm_id not in order:
+					self.log.info("............vm_id %s not in order %s" % (vm_id, order))
+					order.append(vm_id)
+				if vm_id not in vms:
+					self.log.info("............vm_id %s not in vms %s" % (vm_id, vms))
+					vms[vm_id] = {}
+
+				vms[vm_id].update(self.get_vm_info(vm_id, vm_in, hypervObj))
+				discovered.append(vm_id)
+						
+		# loop through the 'vms' and remove any that were not discovered in this pass...
+		for vm_id in vms.keys():
+			if vm_id not in discovered:
+				del vms[vm_id] # no longer a valid VM, so remove it...
+				if vm_id in order: # remove the vm from the order list as well if it exists...
+					order.remove(vm_id)
+
+		### Update the running-hyperv.conf file
+		self.confMgr.updateOptions([('STATE', 'vms', vms), ('STATE', 'vm_order', order)], True)
+		self.confMgr.updateRunningConfig()
+
+		return vms, order
+
+	def discover_vms_from_input_files(self):
 		self.confMgr.refresh()
 		if self.confMgr.has_option('STATE', 'vms'):
 			# initialize the 'vms' variable from the existing config...
@@ -160,7 +221,7 @@ class HypverMigrator:
 					self.log.info("............vm_id %s not in vms %s" % (vm_id, vms))
 					vms[vm_id] = {}
 
-				vms[vm_id].update(self.get_vm_info(vm_id, vm_in))
+				vms[vm_id].update(self.get_vm_info(vm_id, vm_in, None))
 				discovered.append(vm_id)
 						
 		# loop through the 'vms' and remove any that were not discovered in this pass...
@@ -346,7 +407,7 @@ class HypverMigrator:
 			poll = 1
 			has_error = False
 			self.log.info("migrationState is: %s" % (vms[vm_id]['migrationState']))
-			while not has_error and vms[vm_id]['state'] != 'launched':
+			while not has_error and vms[vm_id]['migrationState'] != 'launched':
 				# for i, vm in enumerate(vms):
 				# vm_id = hashlib.sha1(vm['hyperv_server']+"|"+vm['hyperv_vm_name']).hexdigest()
 				isAVm = 'cs_service_offering' in vms[vm_id]
