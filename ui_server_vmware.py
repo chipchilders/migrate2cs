@@ -18,6 +18,7 @@ import logging.handlers
 import pprint
 from pysphere import VIServer
 from ui_common import *
+from ConfigParser import ConfigParser
 
 conf = ConfigParser()
 conf.add_section('VMWARE')
