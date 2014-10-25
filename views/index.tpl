@@ -159,9 +159,9 @@
           if ('cs_network' in vm_obj) {
               networkNames = vm_obj['cs_network_display']
               $(vm_el).find('.dst_network').text(networkNames[0]);
-              for (var i in networkNames) {
-                if (i > 0) {
-                  $(vm_el).find('.dst_network').append('<div>' +networkNames[i] + '</div');
+              for (var j in networkNames) {
+                if (j > 0) {
+                  $(vm_el).find('.dst_network').append('<div>' +networkNames[j] + '</div');
                 }
               } 
 
