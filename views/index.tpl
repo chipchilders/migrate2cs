@@ -157,8 +157,17 @@
             $(vm_el).find('.dst_compute_offering_id').text(vm_obj['cs_service_offering']);
           }
           if ('cs_network' in vm_obj) {
-            $(vm_el).find('.dst_network').text(vm_obj['cs_network_display']);
-            $(vm_el).find('.dst_network_id').text(vm_obj['cs_network']);
+              networkNames = vm_obj['cs_network_display']
+              $(vm_el).find('.dst_network').text(networkNames[0]);
+              for (var i in networkNames) {
+                if (i > 0) {
+                  $(vm_el).find('.dst_network').append('<div>' +networkNames[i] + '</div');
+                }
+              } 
+
+            // $(vm_el).find('.dst_network').text(vm_obj['cs_network_display']);
+            $(vm_el).find('.dst_network_id').val(vm_obj['cs_network']);
+            $(vm_el).find('.dst_network_names').val(vm_obj['cs_network_display']);
           }
           if ('cs_ip_address' in vm_obj) {
             $(vm_el).find('.dst_ip_address').val(vm_obj['cs_ip_address']) //.attr('disabled', 'disabled');
@@ -307,17 +316,32 @@
               }
 
               if (!$('#dst_network').is(':disabled') && $('#dst_network option:selected').val() != '') {
-                $(vm).find('.dst_network').text($('#dst_network option:selected').text());
-                $(vm).find('.dst_network_id').text($('#dst_network option:selected').val());
-                vms[vm_id]['cs_network_display'] = $('#dst_network option:selected').text();
-                vms[vm_id]['cs_network'] = $('#dst_network option:selected').val();
+                selectedOptions = $('#dst_network option:selected')
+                networkIds = [];
+                networkNames = [];
+                selectedOptions.each(function(i) { networkIds.push($(selectedOptions[i]).val())})
+                selectedOptions.each(function(i) { networkNames.push($(selectedOptions[i]).text())})
+
+                $(vm).find('.dst_network').text(networkNames[0]);
+                for (var i in networkNames) {
+                  if (i > 0) {
+                    $(vm).find('.dst_network').append('<div>' +networkNames[i] + '</div');
+                  }
+                } 
+
+                $(vm).find('.dst_network_id').val(networkIds);
+                $(vm).find('.dst_network_names').val(networkNames);
+                vms[vm_id]['cs_network_display'] = networkNames;
+                vms[vm_id]['cs_network'] = networkIds;
               } else {
                 if ($('#dst_network option:selected').val() == '') {
                   $(vm).find('.dst_network').text('Use Default');
                   $(vm).find('.dst_network_id').text('');
+                  $(vm).find('.dst_network_names').text('');
                 } else {
                   $(vm).find('.dst_network').text($('#dst_network option:selected').text());
                   $(vm).find('.dst_network_id').text('');
+                  $(vm).find('.dst_network_names').text('');
                 }
               }
             });
@@ -391,7 +415,8 @@
         if (fieldEmpty(vm, '.dst_account_id')) return false;
         if (fieldEmpty(vm, '.dst_zone_id')) return false;
         if (fieldEmpty(vm, '.dst_compute_offering_id')) return false;
-        if (fieldEmpty(vm, '.dst_network_id')) return false;
+        if (vm.find('.dst_network_names').val() == null) return false;
+        if (vm.find('.dst_network_id').val() == null) return false;
         return true;
       }
       // clicking the apply button to apply a config to the selected VMs
@@ -432,8 +457,10 @@
 
               vms[vm_id]['cs_ip_address'] = ipAddressEntered;
 
-              vms[vm_id]['cs_network_display'] = $(vm).find('.dst_network').text();
-              vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
+              networkIds = $(vm).find('.dst_network_id').val();
+              networkNames = $(vm).find('.dst_network_names').val();
+              vms[vm_id]['cs_network'] = networkIds;
+              vms[vm_id]['cs_network_display'] = networkNames;
             }
           });
 
@@ -501,8 +528,10 @@
               vms[vm_id]['cs_service_offering_display'] = $(vm).find('.dst_compute_offering').text();
               vms[vm_id]['cs_ip_address'] = $(vm).find('.dst_ip_address').val();
               if ($(vm).find('.dst_network_id').text() != '') {
-                vms[vm_id]['cs_network'] = $(vm).find('.dst_network_id').text();
-                vms[vm_id]['cs_network_display'] = $(vm).find('.dst_network').text();
+                networkIds = $(vm).find('.dst_network_id').val();
+                networkNames = $(vm).find('.dst_network_names').val();
+                vms[vm_id]['cs_network'] = networkIds;
+                vms[vm_id]['cs_network_display'] = networkNames;
               }
               migrate.push(vm_id);
             } else {
@@ -690,10 +719,16 @@
                 <span class="account_loader" style="display:none;"><img src="/static/views/images/ajax-loader.gif" /></span><br />
               <label>Zone*</label>
               <select id="dst_zone" class="dst_zone"></select><br />
-              <label>Network&nbsp;</label>
-              <select id="dst_network" class="dst_network"></select><br />
               <label>Compute Offering*</label>
               <select id="dst_compute_offering" class="dst_compute_offering"></select>
+              <div>
+                <div style="float:left">
+                  <label>Network&nbsp;</label>
+                </div>
+                <div>
+                  <select id="dst_network" class="dst_network" multiple></select><br />
+                </div>
+              </div>
             </div>
             
             <div class="right">
@@ -744,10 +779,17 @@
                     <span class="dst_compute_offering_id hidden"></span>
                   </div>
                   <div class="detail">
-                    <span class="label">Network</span>
-                    <span class="dst_network"> - - - </span>
+                    <div style="float:left">
+                      <span class="label">Network</span>
+                    </div>
+                    
+                    <div class="dst_network" style="float:left; margin-left:0.5em">- - -
+                    </div>
+                    
                     <span class="dst_network_id hidden"></span>
+                    <span class="dst_network_names hidden"></span>
                   </div>
+
                   <div class="detail">
                     <span class="label ip_address">IP</span>
                     <input class="dst_ip_address" type="text" name="dst_ip_address">

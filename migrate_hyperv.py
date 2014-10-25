@@ -326,8 +326,8 @@ class HypverMigrator:
 			if 'cs_network' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_network'):
 				vms[vm_id]['cs_network'] = self.confMgr.get('CLOUDSTACK', 'default_network')
 
-			if 'cs_additional_networks' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'additional_networks'):
-				vms[vm_id]['cs_additional_networks'] = self.confMgr.get('CLOUDSTACK', 'additional_networks')
+			# if 'cs_additional_networks' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'additional_networks'):
+			# 	vms[vm_id]['cs_additional_networks'] = self.confMgr.get('CLOUDSTACK', 'additional_networks')
 
 			if 'cs_service_offering' not in vms[vm_id] and self.confMgr.has_option('CLOUDSTACK', 'default_service_offering'):
 				vms[vm_id]['cs_service_offering'] = self.confMgr.get('CLOUDSTACK', 'default_service_offering')
@@ -469,8 +469,9 @@ class HypverMigrator:
 
 								# if vms[vm_id]['cs_zone_network'] == 'advanced': # advanced: so pass the networkids too
 								if 'cs_network' in vms[vm_id] and vms[vm_id]['cs_network'] != '':
-									all_networkIds = [vms[vm_id]['cs_network'], vms[vm_id]['cs_additional_networks']]
-									cmd['networkids'] = ",".join(all_networkIds)
+									# all_networkIds = [vms[vm_id]['cs_network'], vms[vm_id]['cs_additional_networks']]
+									all_networkIds = vms[vm_id]['cs_network']
+									cmd['networkids'] =  ",".join(all_networkIds)
 									self.log.info("_____networks: %s_________" % cmd['networkids'])
 								
 								cs_vm = cs.request(cmd) # launch the VM
