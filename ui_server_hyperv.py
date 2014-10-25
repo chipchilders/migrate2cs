@@ -44,7 +44,7 @@ def setup():
 	('WEBSERVER', 'port', '8080'),
 	('STATE', 'active_migration', 'False'),
 	('DEBUG', 'ui_test', 'False'),
-	('DEBUG', 'skip_discovery', 'True')
+	('DEBUG', 'skip_discovery', 'False')
 	]
 
 	configFile = './settings-' + HYPERVISOR_TYPE + '.conf'
