@@ -262,7 +262,7 @@ class HypverMigrator:
 
 			# make sure the minimum fields were entered and they have not been processed already
 
-			if (vms[vm_id]['state'] == 'running' and ok) or vms[vm_id]['state'] == 'stopped':
+			if vms[vm_id]['state'] == 'running' or vms[vm_id]['state'] == 'stopped':
 				exported = False
 				for disk in vms[vm_id]['src_disks']:
 					if 'label' in disk and disk['label'] == 'Hard Drive' and 'path' in disk:
